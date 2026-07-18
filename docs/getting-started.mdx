@@ -1,46 +1,30 @@
 ---
 title: Getting started
-description: Create a NamoID project and add a working Hosted Auth sign-in flow.
+description: Add a NamoID Hosted Auth sign-in flow to a browser application.
 ---
 
-This walkthrough creates a Hosted Auth integration. You need a NamoID account
-and a callback URL in your application.
+This guide uses the published `@namoidhq/js` package and a Test environment.
 
-## 1. Create a tenant and project
+## 1. Create a project
 
-Sign in at [console.namoid.in](https://console.namoid.in/login). Create a
-tenant, then create a project. Each project has isolated Test and Live
-environments with separate users, credentials, configuration, and audit data.
-
-Use **Test** while integrating. Its hosted environment URL has this form:
-
-```text
-https://<slug>.sandbox.namoid.in
-```
-
-Live uses `https://<slug>.id.namoid.in`.
+Sign in at [console.namoid.in](https://console.namoid.in/login), create a
+tenant, and create a project. Select the Test environment while integrating.
 
 ## 2. Configure Hosted Auth
 
 In the selected environment:
 
-1. Enable the sign-in methods you want under **Authentication**.
+1. Enable one or more sign-in methods shown as available.
 2. Add your exact callback URL and browser origin under **Hosted Auth**.
-3. Create an **Auth publishable** key for a browser or mobile client, or an
-   **Auth secret** key for a server-rendered or backend-for-frontend client.
+3. Create an Auth publishable key.
 
-Publishable keys are safe to embed in a browser, but are restricted to the
-configured origins. Secret keys must remain on the server.
+Use the values shown in the Console. Do not use a secret key in browser code.
 
-## 3. Install an SDK
-
-For a browser application:
+## 3. Install the JavaScript SDK
 
 ```bash
 pnpm add @namoidhq/js
 ```
-
-Create a client with the Test publishable key:
 
 ```ts
 import { createNamoIDClient } from "@namoidhq/js";
@@ -50,12 +34,9 @@ export const namoid = createNamoIDClient({
 });
 ```
 
-The client resolves the environment's Hosted Auth URL from its public config.
-You may pass `hostedAuthBaseUrl` explicitly when needed.
-
 ## 4. Start sign-in
 
-Public clients must create a state and S256 PKCE transaction before redirecting:
+Create a state and PKCE transaction before redirecting:
 
 ```ts
 const transaction = await namoid.hostedAuth.createPublicTransaction();
@@ -71,22 +52,18 @@ await namoid.hostedAuth.redirect({
 });
 ```
 
-Use `mode: "sign_up"` or `mode: "waitlist"` for those flows.
-
 ## 5. Complete the callback
 
-At the callback, compare the returned `state` with the saved transaction before
-exchanging the one-time code:
+Validate the returned state before exchanging the one-time code:
 
 ```ts
 const params = new URLSearchParams(window.location.search);
 const code = params.get("code");
-const state = params.get("state");
-const transaction = JSON.parse(
-  sessionStorage.getItem("namoid_transaction") ?? "null",
-);
+const returnedState = params.get("state");
+const raw = sessionStorage.getItem("namoid_transaction");
+const transaction = raw ? JSON.parse(raw) : null;
 
-if (!code || !transaction || state !== transaction.state) {
+if (!code || !transaction || returnedState !== transaction.state) {
   throw new Error("Invalid Hosted Auth callback");
 }
 
@@ -97,18 +74,16 @@ const tokens = await namoid.hostedAuth.exchangeCode({
 });
 ```
 
-Treat returned tokens as credentials. A production browser application should
-prefer a backend-for-frontend that stores tokens in a server-side session. The
-[Next.js SDK](/sdks/nextjs) handles the Hosted Auth transaction on the server.
+Treat returned tokens as credentials. Prefer a server-side application session
+for production web applications.
 
 ## 6. Verify the integration
 
-After signing in, confirm that the user appears under the selected
-environment's **Users** view. Test and Live users are intentionally separate.
+Complete a Test sign-in and confirm that the user appears in the selected
+environment's **Users** view.
 
 ## Next steps
 
 - Review the [Hosted Auth flow](/guides/hosted-login).
-- Add [MFA](/authentication/mfa) or [passkeys](/authentication/passkeys).
-- Subscribe to lifecycle [webhooks](/api/webhooks).
-- Review [environment isolation](/concepts/environments) before going Live.
+- Use the [React SDK](/sdks/react) or [Next.js SDK](/sdks/nextjs) when those
+  frameworks match your application.
