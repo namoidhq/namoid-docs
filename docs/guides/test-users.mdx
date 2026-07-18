@@ -1,0 +1,64 @@
+---
+title: Test users
+description: Test NamoID Auth with managed identities and reusable email OTPs without sending email.
+---
+
+Test users are managed identities for exercising your application's real
+NamoID Auth flow without using a personal inbox or sending email. They are
+available only in Test environments and remain separate from Live users.
+
+## Create a test user
+
+1. Open your project in the [NamoID Console](https://console.namoid.in/login).
+2. Select the **Test** environment.
+3. Open **Users**, then select **Test users**.
+4. Select **Create test user** and enter a descriptive label, such as
+   `Checkout customer`.
+
+NamoID generates an email address and six-digit email OTP. The address follows
+this pattern:
+
+```text
+checkout.customer+namoid_test_xxxxxxxx@test.namoid.in
+```
+
+Copy both values before opening the environment's hosted sign-in page. No
+message is delivered to the generated address.
+
+## Sign in
+
+Use the generated email address wherever your application starts its normal
+NamoID Auth flow. When NamoID Auth asks for an email OTP, enter the code shown
+in the Console.
+
+This exercises the same NamoID Auth redirect, callback, session, and user flow
+as a regular email OTP sign-in. It does not bypass your application
+integration.
+
+If the environment uses a waitlist, managed test users are allowed
+automatically so they can complete the test flow.
+
+## OTP lifetime
+
+The displayed test OTP is valid for one hour. Opening the credentials after it
+expires generates a new code, and the previous code stops working.
+
+An individual sign-in challenge expires after five minutes. If the verification
+screen expires, start sign-in again and use the current OTP from the Console.
+
+To retrieve the current code, open **Users** > **Test users** and use the
+credentials action for that user.
+
+## Limits and cleanup
+
+Each Test environment supports up to 10 active managed test users by default.
+Delete identities you no longer need to free capacity. Deleting a test user
+also ends its active sessions.
+
+Managed test users cannot be created in or moved to a Live environment. Use
+real identities to validate Live behavior before release.
+
+## Next steps
+
+- Follow [Getting started](/getting-started) to integrate NamoID Auth.
+- Review the complete [NamoID Auth flow](/guides/hosted-login).
