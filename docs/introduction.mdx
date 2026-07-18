@@ -1,18 +1,19 @@
 ---
 title: Introduction
-description: Add NamoID hosted sign-in and sign-up to your application.
+description: Add NamoID Auth sign-in and sign-up to your application.
 ---
 
-NamoID provides hosted sign-in and sign-up pages. Your application redirects a
+NamoID Auth provides hosted sign-in and sign-up pages. Your application redirects a
 user to NamoID and receives a one-time code after authentication. Use a NamoID
 SDK to exchange that code for a NamoID session.
 
 ## Supported integration
 
-- Hosted authentication pages for Test and Live environments.
+- NamoID Auth pages for Test and Live environments.
 - Sign-in methods exposed as available in the NamoID Console.
 - Separate Test and Live users, keys, and settings.
-- Published JavaScript, React, and Next.js SDKs for Hosted Auth.
+- Managed Test users for repeatable email OTP testing without sending email.
+- Published JavaScript, React, and Next.js SDKs for NamoID Auth.
 
 ## Resource hierarchy
 
@@ -20,6 +21,9 @@ SDK to exchange that code for a NamoID session.
 Tenant
 └── Project
     ├── Test environment  https://<slug>.sandbox.namoid.in
+    │   ├── Auth keys
+    │   ├── End users
+    │   └── Managed test users
     └── Live environment  https://<slug>.id.namoid.in
         ├── Auth keys
         └── End users
@@ -27,6 +31,7 @@ Tenant
 
 ## Where to next
 
-- Follow [Getting started](/getting-started) for a Hosted Auth integration.
+- Follow [Getting started](/getting-started) for a NamoID Auth integration.
+- Use [Test users](/guides/test-users) to exercise email OTP in Test.
 - Use the [Next.js SDK](/sdks/nextjs), [React SDK](/sdks/react), or
   [JavaScript SDK](/sdks/javascript).

@@ -1,6 +1,6 @@
 ---
 title: Getting started
-description: Add a NamoID Hosted Auth sign-in flow to a browser application.
+description: Add a NamoID Auth sign-in flow to a browser application.
 ---
 
 This guide uses the published `@namoidhq/js` package and a Test environment.
@@ -10,12 +10,12 @@ This guide uses the published `@namoidhq/js` package and a Test environment.
 Sign in at [console.namoid.in](https://console.namoid.in/login), create a
 tenant, and create a project. Select the Test environment while integrating.
 
-## 2. Configure Hosted Auth
+## 2. Configure NamoID Auth
 
 In the selected environment:
 
 1. Enable one or more sign-in methods shown as available.
-2. Add your exact callback URL and browser origin under **Hosted Auth**.
+2. Add your exact callback URL and browser origin under **NamoID Auth**.
 3. Create an Auth publishable key.
 
 Use the values shown in the Console. Do not use a secret key in browser code.
@@ -64,7 +64,7 @@ const raw = sessionStorage.getItem("namoid_transaction");
 const transaction = raw ? JSON.parse(raw) : null;
 
 if (!code || !transaction || returnedState !== transaction.state) {
-  throw new Error("Invalid Hosted Auth callback");
+  throw new Error("Invalid NamoID Auth callback");
 }
 
 sessionStorage.removeItem("namoid_transaction");
@@ -82,8 +82,13 @@ for production web applications.
 Complete a Test sign-in and confirm that the user appears in the selected
 environment's **Users** view.
 
+To test email OTP without sending a message, create a managed identity from
+**Users** > **Test users** and use its generated email address and current OTP.
+See [Test users](/guides/test-users) for the complete workflow.
+
 ## Next steps
 
-- Review the [Hosted Auth flow](/guides/hosted-login).
+- Review the [NamoID Auth flow](/guides/hosted-login).
+- Create [Test users](/guides/test-users) for repeatable email OTP testing.
 - Use the [React SDK](/sdks/react) or [Next.js SDK](/sdks/nextjs) when those
   frameworks match your application.

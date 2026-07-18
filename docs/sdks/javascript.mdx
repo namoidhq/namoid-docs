@@ -1,6 +1,6 @@
 ---
 title: JavaScript SDK
-description: Use @namoidhq/js to load public auth configuration and run a PKCE-protected Hosted Auth flow.
+description: Use @namoidhq/js to load public auth configuration and run a PKCE-protected NamoID Auth flow.
 ---
 
 `@namoidhq/js` is the framework-neutral NamoID client for browsers and modern
@@ -39,9 +39,9 @@ console.log(config.hosted_auth_base_url, config.signin_methods);
 ```
 
 The response is safe for frontend use and includes the environment's access
-mode, enabled sign-in methods, Hosted Auth pages, MFA mode, and public branding.
+mode, enabled sign-in methods, NamoID Auth pages, MFA mode, and public branding.
 
-## Start a public Hosted Auth flow
+## Start a public NamoID Auth flow
 
 Create the transaction before redirecting and retain it in session storage:
 
@@ -73,7 +73,7 @@ const raw = sessionStorage.getItem("namoid_transaction");
 const transaction = raw ? JSON.parse(raw) : null;
 
 if (!code || !transaction || returnedState !== transaction.state) {
-  throw new Error("Invalid Hosted Auth callback");
+  throw new Error("Invalid NamoID Auth callback");
 }
 
 sessionStorage.removeItem("namoid_transaction");

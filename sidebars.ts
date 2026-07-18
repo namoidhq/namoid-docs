@@ -7,7 +7,7 @@ const sidebars: SidebarsConfig = {
     {
       type: 'category',
       label: 'Authentication',
-      items: ['authentication/overview', 'guides/hosted-login'],
+      items: ['authentication/overview', 'guides/hosted-login', 'guides/test-users'],
     },
     {
       type: 'category',
