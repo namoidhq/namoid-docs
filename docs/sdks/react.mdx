@@ -1,0 +1,87 @@
+---
+title: React SDK
+description: Add NamoID Hosted Auth buttons and configuration-aware sign-in panels to a React application.
+---
+
+`@namoidhq/react` wraps the JavaScript SDK with a provider, hooks, and Hosted
+Auth components. It is a client-side package.
+
+## Install
+
+```bash
+pnpm add @namoidhq/react @namoidhq/js
+```
+
+## Add the provider
+
+```tsx
+import { NamoIDProvider } from "@namoidhq/react";
+
+export function App() {
+  return (
+    <NamoIDProvider publishableKey="namoid_auth_pk_test_…">
+      <Routes />
+    </NamoIDProvider>
+  );
+}
+```
+
+The provider also accepts `apiBaseUrl`, `hostedAuthBaseUrl`, and `fetcher`.
+
+## Add a sign-in button
+
+```tsx
+import { HostedAuthButton } from "@namoidhq/react";
+
+export function Login() {
+  return (
+    <HostedAuthButton returnTo="https://app.example.com/auth/callback">
+      Continue with NamoID
+    </HostedAuthButton>
+  );
+}
+```
+
+The button creates and stores a state/PKCE transaction, then redirects to
+Hosted Auth. Set `mode="sign_up"` or `mode="waitlist"` for another flow.
+
+## Complete the callback
+
+```tsx
+import { completeHostedAuthRedirect, useNamoID } from "@namoidhq/react";
+import { useEffect } from "react";
+
+export function AuthCallback() {
+  const client = useNamoID();
+
+  useEffect(() => {
+    void completeHostedAuthRedirect(client).then((tokens) => {
+      // Prefer sending tokens to your backend to establish an app session.
+      console.log(tokens.access_token);
+    });
+  }, [client]);
+
+  return <p>Completing sign-in…</p>;
+}
+```
+
+`completeHostedAuthRedirect` verifies the returned state against the saved
+transaction and exchanges the one-time code with its PKCE verifier.
+
+## Configuration-aware components
+
+```tsx
+import { AuthCard, SignIn, SignUp, Waitlist } from "@namoidhq/react";
+
+<SignIn returnTo="https://app.example.com/auth/callback" />
+<SignUp returnTo="https://app.example.com/auth/callback" />
+<Waitlist returnTo="https://app.example.com/auth/callback" />
+<AuthCard mode="sign_in" returnTo="https://app.example.com/auth/callback" />
+```
+
+These components load the environment's public configuration and disable flows
+that are not currently available. `useAuthConfig()` exposes the same config,
+loading, error, and reload state for custom UI.
+
+Use `useNamoID()` when you need direct access to the underlying JavaScript
+client.

@@ -1,0 +1,68 @@
+:root {
+  --ifm-color-primary: #0e5b47;
+  --ifm-color-primary-dark: #0c523f;
+  --ifm-color-primary-darker: #0b4d3c;
+  --ifm-color-primary-darkest: #093f31;
+  --ifm-color-primary-light: #10644f;
+  --ifm-color-primary-lighter: #116952;
+  --ifm-color-primary-lightest: #13775d;
+  --ifm-background-color: #f7f7f7;
+  --ifm-background-surface-color: #ffffff;
+  --ifm-font-color-base: #0a0a0a;
+  --ifm-heading-color: #0a0a0a;
+  --ifm-navbar-background-color: rgb(247 247 247 / 92%);
+  --ifm-footer-background-color: #ffffff;
+  --ifm-code-font-size: 95%;
+  --ifm-font-family-base: ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --ifm-font-family-monospace: ui-monospace, SFMono-Regular, 'JetBrains Mono', Menlo, monospace;
+  --ifm-global-radius: 0.5rem;
+  --ifm-toc-border-color: rgb(10 10 10 / 12%);
+  --docusaurus-highlighted-code-line-bg: rgb(14 91 71 / 9%);
+}
+
+html[data-theme='light'] {
+  color-scheme: light;
+}
+
+.navbar {
+  border-bottom: 1px solid rgb(10 10 10 / 10%);
+  box-shadow: none;
+  backdrop-filter: blur(16px);
+}
+
+.navbar__logo {
+  height: 1.75rem;
+}
+
+.navbar__title {
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+
+.theme-doc-sidebar-container {
+  background: #ffffff;
+}
+
+.menu__link--active:not(.menu__link--sublist) {
+  background: rgb(14 91 71 / 9%);
+}
+
+.markdown h1,
+.markdown h2,
+.markdown h3 {
+  letter-spacing: -0.025em;
+}
+
+.markdown a:not(.hash-link) {
+  text-underline-offset: 0.15em;
+}
+
+.footer {
+  border-top: 1px solid rgb(10 10 10 / 10%);
+}
+
+.footer__title,
+.footer__link-item,
+.footer__copyright {
+  color: #0a0a0a;
+}

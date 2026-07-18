@@ -1,0 +1,43 @@
+---
+title: Introduction
+description: Add hosted sign-in, sign-up, passkeys, MFA, and India-ready identity controls to your application with NamoID.
+---
+
+NamoID is a hosted identity service for sign-in, sign-up, passkeys, MFA, and
+India-ready identity controls. Integrate with **Hosted Auth**:
+redirect users to NamoID, then exchange the returned one-time code for a native
+NamoID session. This path uses environment auth keys.
+
+## What you get
+
+- **Hosted authentication pages** on an isolated environment host. Test uses
+  `<slug>.sandbox.namoid.in`; Live uses `<slug>.id.namoid.in`.
+- **Native auth sessions** with short-lived access tokens, one-time hosted
+  codes, PKCE for public clients, and environment-scoped auth keys.
+- **Configurable authentication** with email and phone OTP, passwords,
+  passkeys, MFA, and supported external identity providers.
+- **Environment isolation.** Each project has separate Test and Live users,
+  credentials, applications, settings, webhooks, and audit data.
+- **Accountability controls.** Security and consent events enter an append-only
+  audit stream, and end users can request a data export.
+
+## Resource hierarchy
+
+```text
+Tenant
+├── Platform keys       namoid_platform_sk_…
+└── Project
+    ├── Test environment  https://<slug>.sandbox.namoid.in
+    └── Live environment  https://<slug>.id.namoid.in
+        ├── Auth keys      namoid_auth_pk_live_… / namoid_auth_sk_live_…
+        ├── Webhooks
+        └── End users
+```
+
+## Where to next
+
+- Follow [Getting started](/getting-started) for a Hosted Auth integration.
+- Use the [Next.js SDK](/sdks/nextjs), [React SDK](/sdks/react), or
+  [JavaScript SDK](/sdks/javascript).
+- Learn the hierarchy in [Multi-tenancy](/concepts/multi-tenancy) and the
+  credential types in [API keys](/api/keys).

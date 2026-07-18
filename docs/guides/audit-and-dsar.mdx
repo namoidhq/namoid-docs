@@ -1,0 +1,57 @@
+---
+title: Audit & DSAR
+description: NamoID's append-only event store and the data-subject export that give you DPDP-aligned audit and portability primitives.
+---
+
+NamoID writes an immutable audit event for every state-changing action. This is
+what gives you an audit-ready trail and DPDP-aligned data-subject rights
+primitive without building the identity-side plumbing yourself.
+
+## The event store
+
+Every meaningful mutation — account created, signed in, sign-in failed, MFA
+enrolled, consent granted, password changed, account deleted, key created,
+webhook delivered, and more — appends an event. The store is **append-only**:
+events are never updated or deleted, so the history is tamper-evident. Sensitive
+values (passwords, OTP codes, tokens, signing keys) are never written to it.
+
+Events carry the actor, the affected user, a timestamp, tenant, project,
+environment, and event-specific context, so you can reconstruct what happened
+and when.
+
+## Querying events
+
+The audit API exposes read-only, filterable, paginated access to events — for
+example, filtering by event type to find failed logins, or pulling a single
+user's full history. Time-ordered queries are cursor-paginated. Access is
+tenant-scoped: you only ever see your own tenant's events.
+
+## Security events
+
+A subset of events are security-relevant — failed logins, MFA challenge
+failures, refresh-token replay (`security.refresh_replay`), and similar. These
+give you the raw material for brute-force detection and incident review.
+
+## Data Subject Access Requests (DSAR)
+
+Under India's DPDP Act, users have the right to access and port their data.
+NamoID ships this as first-class:
+
+- **Self-serve export.** A signed-in user can download a copy of their data from
+  the hosted account pages. The export is a ZIP containing their event history
+  (and related records) plus a short README explaining the contents. Generating
+  an export itself records a `user.data_exported` event.
+- **Account deletion.** A user can delete their account; this is a soft delete
+  that writes a tombstone event, preserving the audit trail while removing the
+  user from active use.
+
+## Why this matters
+
+The same primitives — an append-only log, per-user export, and a deletion path —
+are exactly what a DPDP audit asks for. When you add code that touches personal
+data, the question to ask is: does this need an event, an export field, and a
+deletion path? NamoID answers all three for the identity surface it owns.
+
+> **Note:** NamoID provides DPDP-aligned audit, consent, and export primitives.
+> Treat them as building blocks for your compliance program, not a substitute
+> for your own legal review and processing terms.

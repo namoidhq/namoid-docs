@@ -1,0 +1,111 @@
+---
+title: JavaScript SDK
+description: Use @namoidhq/js to load public auth configuration and run a PKCE-protected Hosted Auth flow.
+---
+
+`@namoidhq/js` is the framework-neutral NamoID client for browsers and modern
+JavaScript runtimes.
+
+## Install
+
+```bash
+pnpm add @namoidhq/js
+```
+
+## Create a client
+
+```ts
+import { createNamoIDClient } from "@namoidhq/js";
+
+const namoid = createNamoIDClient({
+  publishableKey: "namoid_auth_pk_test_…",
+});
+```
+
+Options:
+
+| Option | Required | Purpose |
+| --- | --- | --- |
+| `publishableKey` | Yes | Environment Auth publishable key |
+| `apiBaseUrl` | No | Override `https://api.namoid.in` |
+| `hostedAuthBaseUrl` | No | Override the URL returned by public auth config |
+| `fetcher` | No | Supply a custom `fetch` implementation |
+
+## Load public configuration
+
+```ts
+const config = await namoid.auth.getConfig();
+console.log(config.hosted_auth_base_url, config.signin_methods);
+```
+
+The response is safe for frontend use and includes the environment's access
+mode, enabled sign-in methods, Hosted Auth pages, MFA mode, and public branding.
+
+## Start a public Hosted Auth flow
+
+Create the transaction before redirecting and retain it in session storage:
+
+```ts
+const transaction = await namoid.hostedAuth.createPublicTransaction();
+sessionStorage.setItem("namoid_transaction", JSON.stringify(transaction));
+
+await namoid.hostedAuth.redirect({
+  mode: "sign_in", // "sign_up" or "waitlist"
+  returnTo: "https://app.example.com/auth/callback",
+  state: transaction.state,
+  completionMode: "public",
+  codeChallenge: transaction.codeChallenge,
+  codeChallengeMethod: transaction.codeChallengeMethod,
+});
+```
+
+Use `hostedAuth.getUrl(options)` when you want the URL without immediately
+redirecting. Both methods are asynchronous because the client may first load
+the environment configuration.
+
+## Complete the callback
+
+```ts
+const params = new URLSearchParams(window.location.search);
+const code = params.get("code");
+const returnedState = params.get("state");
+const raw = sessionStorage.getItem("namoid_transaction");
+const transaction = raw ? JSON.parse(raw) : null;
+
+if (!code || !transaction || returnedState !== transaction.state) {
+  throw new Error("Invalid Hosted Auth callback");
+}
+
+sessionStorage.removeItem("namoid_transaction");
+const tokens = await namoid.hostedAuth.exchangeCode({
+  code,
+  codeVerifier: transaction.codeVerifier,
+});
+```
+
+Validate state before exchanging the code. Treat the returned access and
+refresh tokens as credentials; avoid persistent browser storage when a
+server-side session is available.
+
+## Server helpers
+
+The package exports server-only token validation separately:
+
+```ts
+import { validateAuthToken } from "@namoidhq/js/server";
+
+const result = await validateAuthToken({
+  token: accessToken,
+  apiKey: process.env.NAMOID_AUTH_SECRET_KEY!,
+});
+
+if (!result.valid) throw new Error(result.error ?? "Invalid token");
+```
+
+Use `revokeNativeSession` from `@namoidhq/js` to revoke a native access/refresh
+session from a trusted runtime.
+
+## Errors
+
+SDK failures throw `NamoIDError`, which exposes `status`, `code`, and `detail`
+in addition to the normal error message.

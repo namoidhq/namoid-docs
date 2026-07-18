@@ -1,0 +1,92 @@
+---
+title: Webhooks
+description: HMAC-signed, replay-resistant event deliveries for the NamoID event stream — subscription, signature verification, headers, and retry behavior.
+---
+
+Webhooks let you react to events on the NamoID event stream — user lifecycle,
+consent, MFA, refresh-replay, key changes — without polling the audit log. Each
+delivery is an HTTP POST with a signed, timestamped body.
+
+## Subscription
+
+Create a subscription from the dashboard's **Webhooks** page. You provide:
+
+- A destination **URL** — HTTPS only. An SSRF defense rejects URLs that resolve
+  to private, loopback, link-local, multicast, CGNAT, reserved, or cloud-
+  metadata IP ranges, both at subscription time and again at delivery time.
+- An **event type**, or `*` for everything.
+
+You get back a **signing secret**, shown exactly once. Use it to verify every
+delivery.
+
+## Delivery headers
+
+Each POST carries:
+
+| Header | Meaning |
+|---|---|
+| `X-Idp-Signature` | HMAC-SHA256 hex digest (see below) |
+| `X-Idp-Timestamp` | Unix timestamp the signature covers |
+| `X-Idp-Event-Type` | The event type, e.g. `user.created` |
+| `X-Idp-Delivery-Id` | Unique ID for this delivery attempt |
+
+## Verifying a delivery
+
+The signature is the HMAC-SHA256 of **`{timestamp}.{body}`** — the timestamp
+header, a literal `.`, then the raw request body — keyed with your signing
+secret. Binding the timestamp into the signature is what makes a replayed
+request with a stale signature fail.
+
+```ts
+import { createHmac, timingSafeEqual } from "node:crypto";
+
+function verifyNamoid(opts: {
+  rawBody: string;          // the raw, unparsed request body
+  signature: string | null; // X-Idp-Signature
+  timestamp: string | null; // X-Idp-Timestamp
+  secret: string;
+  toleranceSeconds?: number;
+}): boolean {
+  const { rawBody, signature, timestamp, secret, toleranceSeconds = 300 } = opts;
+  if (!signature || !timestamp) return false;
+
+  // Reject stale/replayed deliveries.
+  const skew = Math.abs(Date.now() / 1000 - Number(timestamp));
+  if (!Number.isFinite(skew) || skew > toleranceSeconds) return false;
+
+  const expected = createHmac("sha256", secret)
+    .update(timestamp)
+    .update(".")
+    .update(rawBody)
+    .digest("hex");
+
+  const a = Buffer.from(expected);
+  const b = Buffer.from(signature);
+  return a.length === b.length && timingSafeEqual(a, b);
+}
+```
+
+Always read the **raw** body before any JSON parser touches it — even a
+re-serialized body breaks the signature. Compare with a constant-time function.
+
+## Retries
+
+A delivery that gets a non-2xx response or times out is retried with exponential
+backoff by a dedicated delivery worker (deliveries live in a durable queue, not
+in the request path). After the final attempt the delivery is marked failed and
+surfaces on the dashboard. Because retries can happen, make your handler
+**idempotent** — dedupe on `X-Idp-Delivery-Id` or the event ID.
+
+## Event catalogue
+
+NamoID emits a broad set of event types across the user, Auth, API-key, tenant,
+project, environment, and security domains — the full catalogue is
+shown in the dashboard's webhook creation flow. Commonly used events include:
+
+- `user.created`, `user.login`, `user.login_failed`, `user.deleted`
+- `consent.granted`, `consent.revoked`
+- `mfa.enrolled`, `mfa.challenged`
+- `security.refresh_replay`
+- `api_key.created`, `api_key.rotated`
+
+Subscribe to `*` if you'd rather filter on your side.

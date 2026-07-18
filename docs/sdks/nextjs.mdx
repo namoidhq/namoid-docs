@@ -1,0 +1,122 @@
+---
+title: Next.js SDK
+description: Use @namoidhq/nextjs for a server-side Hosted Auth transaction in the Next.js App Router.
+---
+
+`@namoidhq/nextjs` implements the confidential Hosted Auth flow for the Next.js
+App Router. It stores short-lived transaction state in `HttpOnly` cookies,
+exchanges the callback code with an Auth secret key, and validates the returned
+access token.
+
+## Install
+
+```bash
+pnpm add @namoidhq/nextjs @namoidhq/js
+```
+
+## Configure the client
+
+```ts
+// lib/namoid.ts
+import { createNamoIDNextClient } from "@namoidhq/nextjs";
+
+export const namoid = createNamoIDNextClient({
+  hostedAuthBaseUrl: process.env.NAMOID_HOSTED_AUTH_URL!,
+  authSecretKey: process.env.NAMOID_AUTH_SECRET_KEY!,
+  appBaseUrl: process.env.APP_BASE_URL!,
+  postLoginRedirectPath: "/dashboard",
+  postLogoutRedirectPath: "/login",
+});
+```
+
+```bash
+NAMOID_HOSTED_AUTH_URL=https://your-slug.sandbox.namoid.in
+NAMOID_AUTH_SECRET_KEY=namoid_auth_sk_test_…
+APP_BASE_URL=http://localhost:3000
+```
+
+The defaults are:
+
+- callback path: `/api/auth/callback/namoid`
+- post-login path: `/`
+- post-logout path: `/login`
+- transaction lifetime: 10 minutes
+
+Optional settings include `apiBaseUrl`, `callbackPath`, `cookiePrefix`,
+`transactionMaxAgeSeconds`, and a custom `fetcher`.
+
+## Login route
+
+```ts
+// app/api/auth/login/route.ts
+import { namoid } from "@/lib/namoid";
+
+export async function GET() {
+  return namoid.login({ returnTo: "/dashboard" });
+}
+```
+
+Pass `mode: "sign_up"` or `mode: "waitlist"` to start another Hosted Auth
+page. `returnTo` must be a relative application path.
+
+## Callback route
+
+```ts
+// app/api/auth/callback/namoid/route.ts
+import { namoid } from "@/lib/namoid";
+
+export async function GET(request: Request) {
+  return namoid.callback(request, {
+    async onSuccess({ tokens, transaction }) {
+      // Store tokens in your server-side session here.
+      // transaction.returnTo is validated as a relative path.
+      return Response.redirect(
+        new URL(transaction.returnTo, process.env.APP_BASE_URL!),
+        302,
+      );
+    },
+    async onError(error) {
+      console.error(error);
+      return Response.redirect(
+        new URL("/login?error=auth", process.env.APP_BASE_URL!),
+        302,
+      );
+    },
+  });
+}
+```
+
+Without `onSuccess`, the SDK redirects to the transaction's `returnTo`. Without
+`onError`, it redirects to the configured post-logout path with an error query
+parameter.
+
+## Logout route
+
+```ts
+// app/api/auth/logout/route.ts
+import { namoid } from "@/lib/namoid";
+
+export async function POST() {
+  const session = await readYourServerSession();
+
+  return namoid.logout({
+    accessToken: session?.accessToken,
+    refreshToken: session?.refreshToken,
+  });
+}
+```
+
+When an access token is supplied, the SDK revokes the native session. It then
+redirects through the environment's `/sign-out` page to clear the hosted
+browser session. Set `clearHostedSession: false` when only the local application
+session should end.
+
+## Security notes
+
+- Keep `authSecretKey` server-side.
+- Store returned tokens in a server-side session, not browser storage.
+- The SDK's transaction cookies are `HttpOnly`, `SameSite=Lax`, and `Secure`
+  whenever `appBaseUrl` uses HTTPS.
+- Create the configured callback URL in the environment's Hosted Auth settings.
+
+This package implements NamoID Hosted Auth for the Next.js App Router.

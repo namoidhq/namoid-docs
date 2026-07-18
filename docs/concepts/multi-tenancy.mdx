@@ -1,0 +1,59 @@
+---
+title: Multi-tenancy model
+description: How tenants, projects, and environments isolate teams, applications, users, and credentials in NamoID.
+---
+
+NamoID has three layers: **tenants**, **projects**, and **environments**.
+
+```text
+Tenant                 governance and membership boundary
+├── Platform keys      tenant-wide automation credentials
+└── Project            one product or application
+    ├── Test           isolated test users and credentials
+    └── Live           isolated production users and credentials
+```
+
+## Tenants
+
+A tenant owns team membership, projects, invitations, and platform keys.
+Tenant-scoped access checks prevent members and automation credentials from
+reading another tenant's data.
+
+Platform keys (`namoid_platform_sk_…`) are trusted server-side credentials for
+setup scripts, CI jobs, CLIs, and administrative automation across projects in
+the tenant.
+
+## Projects
+
+A project represents one product surface, such as a web application or mobile
+application. Projects within a tenant are isolated from each other. Each
+project owns its environments and their auth configuration, keys, webhooks,
+users, and audit stream.
+
+## Environments
+
+Every project has two isolated environments:
+
+- **Test** for development and integration testing.
+- **Live** for production users and traffic.
+
+Users, auth keys, sessions, OTP budgets, webhooks, and configuration are scoped
+to one environment. A Test credential cannot authenticate a Live user.
+
+## URLs
+
+| Resource | Pattern |
+| --- | --- |
+| Test Hosted Auth | `https://<slug>.sandbox.namoid.in` |
+| Live Hosted Auth | `https://<slug>.id.namoid.in` |
+| Console | `https://console.namoid.in/tenants/<tenant-id>/projects/<project-id>` |
+| Public API | `https://api.namoid.in/v1/...` |
+
+A verified custom domain can replace an environment's default Hosted Auth
+hostname.
+
+## Users
+
+The **Users** view follows the selected environment. It shows that environment's
+end users, verified contact state, sign-in activity, and account status. Test
+users never appear in the Live view.
