@@ -1,64 +1,24 @@
 ---
 title: Sign-in methods
-description: The authentication methods NamoID hosted login supports — email OTP, passwords, passkeys, and external-provider sign-in — and how to enable them per environment.
+description: Configure the sign-in methods currently available for a NamoID environment.
 ---
 
-NamoID's hosted login renders the sign-in methods you enable for the selected
-environment. First-party methods are toggled from the environment's
-**Authentication** tab, and external identity providers are enabled from the
-environment's **Identity providers** page. Every method ends in the same place:
-a one-time Hosted Auth code your app exchanges for a session.
+Hosted Auth displays the sign-in methods enabled for the selected environment.
+Use the environment's **Authentication** and **Identity providers** pages in
+the Console. Only methods shown as available there should be treated as
+supported for that environment.
 
-## Available methods
+## Available categories
 
-| Method | What the user does | Notes |
-|---|---|---|
-| **Email OTP** | Enters email, receives a one-time code | Codes are server-generated, single-use, and expire in 5 minutes |
-| **Password** | Email + password | Strength-checked on set; bcrypt-hashed; reset via email |
-| **Passkey** | Touch ID / Face ID / security key | Phishing-resistant WebAuthn; see [Passkeys](/authentication/passkeys) |
-| **External provider** | "Continue with Google / Facebook / LinkedIn / GitHub" | Federates to the external IdP you configured, then issues a NamoID token |
+| Method | User experience |
+|---|---|
+| Email OTP | Enters an email and receives a one-time code |
+| Password | Signs in with an email and password |
+| Passkey | Uses a device passkey when enabled |
+| External provider | Continues with a provider configured for the environment |
 
-Google Test environments can use NamoID-managed sandbox credentials. Facebook,
-LinkedIn, and GitHub always use credentials from your own provider application;
-the Identity providers page shows the exact callback URL to register upstream.
+Provider availability and setup requirements vary. The Console is the source
+of truth for credentials, callback URLs, and whether a provider can be enabled.
 
-When more than one method is enabled, the hosted login presents a compact
-method chooser. Passkey and external-provider options render as additional
-buttons when configured.
-
-## Choosing methods
-
-- **Lowest-friction consumer apps:** email OTP, optionally with passkeys
-  offered after first sign-in for fast returning logins.
-- **Apps users expect a password for:** enable password, and strongly consider
-  layering [MFA](/authentication/mfa) on top.
-- **Security-sensitive apps:** prefer passkeys (inherently two-factor) or
-  require MFA enrollment.
-
-## One-time codes
-
-Email OTP uses a server-generated numeric code with a short TTL (5 minutes) and
-a limited number of verification attempts. Attempt counters are tracked so a
-brute-force guess on a code is rate-limited and locked out. Code sends are
-themselves rate-limited per target and per IP to defend against OTP-flood
-abuse. See [Rate limits](/guides/hosted-login#rate-limits).
-
-## Multi-factor
-
-Password and OTP sign-ins can require a second factor. NamoID supports TOTP
-authenticator apps and one-time backup codes. A passkey satisfies both factors
-in a single ceremony. See [Multi-factor authentication](/authentication/mfa).
-
-## Account recovery
-
-- **Forgot password** triggers an emailed reset link that lets the user set a
-  new password; the old sessions can be revoked.
-- **Lost MFA device** is recovered with a backup code; see
-  [MFA](/authentication/mfa#backup-codes).
-
-## Sign-up controls
-
-Whether new users can self-register is governed by the environment's **access
-mode**: closed, open, allowlist, or domain allowlist. The waitlist toggle can
-override those modes and queue new sign-up attempts for manual approval. These
-controls are set per environment alongside the sign-in methods.
+Do not build separate credential forms against private Hosted Auth endpoints.
+Redirect users through the supported [Hosted Auth flow](/guides/hosted-login).

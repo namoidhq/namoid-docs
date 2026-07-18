@@ -1,9 +1,9 @@
 ---
 title: Hosted Auth
-description: Understand NamoID's hosted authentication pages, callbacks, sign-out flow, and end-user account pages.
+description: Understand the supported NamoID Hosted Auth redirect and callback flow.
 ---
 
-Hosted Auth is the authentication UI NamoID renders for your end users. Your
+Hosted Auth is the authentication UI NamoID renders for your users. Your
 application redirects to it instead of collecting credentials itself.
 
 ## Environment hosts
@@ -13,53 +13,26 @@ Test: https://<slug>.sandbox.namoid.in
 Live: https://<slug>.id.namoid.in
 ```
 
-The same environment host serves sign-in UI and account pages. Test and Live
-remain fully isolated.
+Use the Hosted Auth base URL shown in the Console or returned by public auth
+configuration. Do not construct it from the project name in application code.
 
-## Native Hosted Auth
-
-This is the recommended path for new NamoID SDK integrations.
+## Supported flow
 
 1. Redirect to `/sign-in`, `/sign-up`, or `/waitlist` with `return_to`, `state`,
    and a completion mode.
-2. For a public client, include an S256 PKCE challenge.
+2. Public clients include an S256 PKCE challenge.
 3. NamoID authenticates the user and redirects to `return_to` with a one-time
    `code` and the original `state`.
 4. Verify `state`, then exchange the code at `POST /v1/auth/hosted/exchange`.
 
-Use an Auth publishable key for public clients or an Auth secret key for a
-confidential server integration. One-time codes are short lived and cannot be
-reused.
+Use an Auth publishable key for a public browser client or an Auth secret key
+for a confidential server integration. Keep secret keys on the server.
 
 The [JavaScript](/sdks/javascript), [React](/sdks/react), and
 [Next.js](/sdks/nextjs) SDKs implement this flow.
 
-## Configuration and security
-
-The selected environment controls enabled sign-in methods, MFA policy, access
-mode, waitlist state, consent behavior, and branding. Passwords, OTPs, passkeys,
-and external identity-provider tokens remain within the hosted flow rather than
-passing through your application.
-
-## Rate limits
-
-Verification attempts are rate limited per target and source to reduce
-credential stuffing, OTP abuse, and automated guessing. OTP sends also respect
-the selected environment's monthly spend cap.
-
 ## Sign-out
 
-Hosted Auth uses `/sign-out`; the Next.js SDK can revoke the native session and
-redirect there. Your application must also clear its own local session.
-
-## End-user account pages
-
-Authenticated users can open `/account` on their environment host to manage
-profile information, sessions, connected identities, passkeys, and data
-requests. Available controls follow the environment's configuration.
-
-## Custom domains
-
-A verified custom domain can replace the default environment hostname. Use the
-Hosted Auth base URL shown by the environment after verification; do not
-construct endpoint URLs from the project name.
+Clear your application's own session when signing out. The Next.js SDK can also
+revoke the NamoID session and redirect through the environment's `/sign-out`
+page.

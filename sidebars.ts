@@ -7,32 +7,12 @@ const sidebars: SidebarsConfig = {
     {
       type: 'category',
       label: 'Authentication',
-      items: ['authentication/overview', 'authentication/mfa', 'authentication/passkeys'],
-    },
-    {
-      type: 'category',
-      label: 'Concepts',
-      items: [
-        'concepts/tokens',
-        'concepts/sessions',
-        'concepts/multi-tenancy',
-        'concepts/environments',
-      ],
-    },
-    {
-      type: 'category',
-      label: 'Guides',
-      items: ['guides/hosted-login', 'guides/audit-and-dsar'],
+      items: ['authentication/overview', 'guides/hosted-login'],
     },
     {
       type: 'category',
       label: 'SDKs',
       items: ['sdks/javascript', 'sdks/react', 'sdks/nextjs'],
-    },
-    {
-      type: 'category',
-      label: 'API reference',
-      items: ['api/auth', 'api/keys', 'api/webhooks'],
     },
   ],
 };
