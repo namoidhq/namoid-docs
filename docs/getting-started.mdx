@@ -16,9 +16,11 @@ In the selected environment:
 
 1. Enable one or more sign-in methods shown as available.
 2. Add your exact callback URL and browser origin under **NamoID Auth**.
-3. Create an Auth publishable key.
+3. Create an application Auth publishable key.
 
-Use the values shown in the Console. Do not use a secret key in browser code.
+Use the key shown in the Console. Do not use a secret key in browser code.
+There is no application ID, issuer, or Hosted Auth URL to copy into the SDK:
+the key resolves that context for you.
 
 ## 3. Install the JavaScript SDK
 
@@ -33,6 +35,8 @@ export const namoid = createNamoIDClient({
   publishableKey: "namoid_auth_pk_test_…",
 });
 ```
+
+Use `@namoidhq/js` version 1.1.0 or later.
 
 ## 4. Start sign-in
 
