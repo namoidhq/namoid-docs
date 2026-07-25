@@ -13,8 +13,9 @@ Test: https://<slug>.sandbox.namoid.in
 Live: https://<slug>.id.namoid.in
 ```
 
-Use the NamoID Auth base URL shown in the Console or returned by public auth
-configuration. Do not construct it from the project name in application code.
+The SDK resolves the NamoID Auth base URL from the application Auth key. Do not
+construct the hostname from the project name or add the URL, issuer, or
+application ID to SDK configuration.
 
 ## Supported flow
 
@@ -25,8 +26,10 @@ configuration. Do not construct it from the project name in application code.
    `code` and the original `state`.
 4. Verify `state`, then exchange the code at `POST /v1/auth/hosted/exchange`.
 
-Use an Auth publishable key for a public browser client or an Auth secret key
-for a confidential server integration. Keep secret keys on the server.
+Use an application Auth publishable key for a public browser client or an
+application Auth secret key for a confidential server integration. Each key is
+scoped to one application and environment, so Test and Live configuration
+cannot be mixed accidentally. Keep secret keys on the server.
 
 The [JavaScript](/sdks/javascript), [React](/sdks/react), and
 [Next.js](/sdks/nextjs) SDKs implement this flow.

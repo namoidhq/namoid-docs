@@ -7,6 +7,10 @@ NamoID Auth provides hosted sign-in and sign-up pages. Your application redirect
 user to NamoID and receives a one-time code after authentication. Use a NamoID
 SDK to exchange that code for a NamoID session.
 
+An application Auth key selects the application, Test or Live environment, and
+Hosted Auth domain. SDK integrations do not require a separate application ID,
+issuer, or Hosted Auth URL.
+
 ## Supported integration
 
 - NamoID Auth pages for Test and Live environments.
@@ -21,11 +25,11 @@ SDK to exchange that code for a NamoID session.
 Tenant
 └── Project
     ├── Test environment  https://<slug>.sandbox.namoid.in
-    │   ├── Auth keys
+    │   ├── Application Auth keys
     │   ├── End users
     │   └── Managed test users
     └── Live environment  https://<slug>.id.namoid.in
-        ├── Auth keys
+        ├── Application Auth keys
         └── End users
 ```
 

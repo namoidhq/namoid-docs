@@ -4,7 +4,7 @@ description: Use @namoidhq/js to load public auth configuration and run a PKCE-p
 ---
 
 `@namoidhq/js` is the framework-neutral NamoID client for browsers and modern
-JavaScript runtimes.
+JavaScript runtimes. This guide requires version 1.1.0 or later.
 
 ## Install
 
@@ -26,10 +26,13 @@ Options:
 
 | Option | Required | Purpose |
 | --- | --- | --- |
-| `publishableKey` | Yes | Environment Auth publishable key |
+| `publishableKey` | Yes | Application Auth publishable key |
 | `apiBaseUrl` | No | Override `https://api.namoid.in` |
-| `hostedAuthBaseUrl` | No | Override the URL returned by public auth config |
 | `fetcher` | No | Supply a custom `fetch` implementation |
+
+You do not provide an application ID, issuer, or Hosted Auth URL. The SDK uses
+the publishable key to resolve the correct application, environment, and
+branded Hosted Auth pages.
 
 ## Load public configuration
 
@@ -38,8 +41,9 @@ const config = await namoid.auth.getConfig();
 console.log(config.hosted_auth_base_url, config.signin_methods);
 ```
 
-The response is safe for frontend use and includes the environment's access
-mode, enabled sign-in methods, NamoID Auth pages, MFA mode, and public branding.
+The response is safe for frontend use and includes the key's application and
+environment context, access mode, enabled sign-in methods, NamoID Auth pages,
+MFA mode, and public branding.
 
 ## Start a public NamoID Auth flow
 

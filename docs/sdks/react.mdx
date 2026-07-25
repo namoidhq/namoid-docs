@@ -4,7 +4,8 @@ description: Add NamoID Auth buttons and configuration-aware sign-in panels to a
 ---
 
 `@namoidhq/react` wraps the JavaScript SDK with a provider, hooks, and Hosted
-Auth components. It is a client-side package.
+Auth components. It is a client-side package and requires version 1.1.0 or
+later.
 
 ## Install
 
@@ -26,7 +27,9 @@ export function App() {
 }
 ```
 
-The provider also accepts `apiBaseUrl`, `hostedAuthBaseUrl`, and `fetcher`.
+The provider also accepts `apiBaseUrl` and `fetcher`. You do not provide an
+application ID or Hosted Auth URL: the publishable key selects the application,
+environment, and branded Hosted Auth pages.
 
 ## Add a sign-in button
 
