@@ -1,0 +1,211 @@
+---
+title: Authentication API
+description: The public OpenID Connect and OAuth 2.0 endpoints exposed by each NamoID environment.
+---
+
+NamoID exposes a standards-based OpenID Connect authorization server for each
+environment. Most applications should use a NamoID SDK, which handles PKCE,
+state validation, token exchange, refresh-token rotation, and issuer discovery.
+Use this reference when integrating through an OpenID Connect library or when
+you need to inspect the underlying protocol.
+
+## Environment issuer
+
+Every Test and Live environment has its own issuer. Copy the issuer from the
+environment's **Authentication** page in the NamoID Console.
+
+```text
+https://<environment-host>
+```
+
+Do not construct the issuer from a project name, and do not use another
+environment's endpoints. Test and Live are separate trust boundaries.
+
+## Discover the endpoints
+
+Use OpenID Connect discovery instead of hard-coding individual endpoint paths.
+
+```bash
+curl "${NAMOID_ISSUER}/.well-known/openid-configuration"
+```
+
+The discovery document includes these public endpoints:
+
+| Purpose | Endpoint |
+| --- | --- |
+| Authorization | `GET /oauth/authorize` |
+| Token exchange and refresh | `POST /v1/oauth/token` |
+| UserInfo | `GET /v1/oauth/userinfo` |
+| Signing keys | `GET /v1/oauth/jwks.json` |
+| Token revocation | `POST /v1/oauth/revoke` |
+| End-user sign-out | `GET /oauth/logout` |
+
+NamoID supports the `authorization_code` and `refresh_token` grants, the `code`
+response type, S256 PKCE, and RS256-signed ID tokens. The discovery response is
+the source of truth for the capabilities available at an issuer.
+
+## Authorization Code with PKCE
+
+Browser, mobile, and desktop applications must use Authorization Code with
+S256 PKCE. Generate a fresh `state`, `nonce`, and PKCE verifier for each
+attempt, store them only for the duration of the attempt, and register every
+callback URI exactly in the Console.
+
+Send the browser to the discovered authorization endpoint with:
+
+| Parameter | Requirement |
+| --- | --- |
+| `response_type` | Must be `code` |
+| `client_id` | The application's public client ID |
+| `redirect_uri` | An exact registered callback URI |
+| `scope` | Include `openid`; request only the identity scopes the app needs |
+| `state` | A cryptographically random value checked by the application |
+| `nonce` | A cryptographically random value checked against the ID token |
+| `code_challenge` | Base64url-encoded SHA-256 digest of the PKCE verifier |
+| `code_challenge_method` | Must be `S256` |
+
+Example authorization request:
+
+```text
+GET /oauth/authorize
+  ?response_type=code
+  &client_id=<client-id>
+  &redirect_uri=https%3A%2F%2Fapp.example.com%2Fauth%2Fcallback
+  &scope=openid%20profile%20email
+  &state=<random-state>
+  &nonce=<random-nonce>
+  &code_challenge=<s256-code-challenge>
+  &code_challenge_method=S256
+```
+
+After authentication, NamoID redirects to the registered callback with a
+single-use authorization `code` and the original `state`. Verify `state` before
+exchanging the code.
+
+## Exchange an authorization code
+
+Send a form-encoded request to the token endpoint. The `redirect_uri` and PKCE
+verifier must match the authorization request.
+
+```bash
+curl -X POST "${NAMOID_ISSUER}/v1/oauth/token" \
+  -H "Content-Type: application/x-www-form-urlencoded" \
+  --data-urlencode "grant_type=authorization_code" \
+  --data-urlencode "client_id=${NAMOID_CLIENT_ID}" \
+  --data-urlencode "code=${NAMOID_AUTHORIZATION_CODE}" \
+  --data-urlencode "redirect_uri=https://app.example.com/auth/callback" \
+  --data-urlencode "code_verifier=${NAMOID_CODE_VERIFIER}"
+```
+
+Public clients send a client ID and never embed a client secret. Confidential
+server applications authenticate using the method configured for the client.
+Keep client secrets, authorization codes, access tokens, ID tokens, and refresh
+tokens out of URLs, browser logs, analytics, and source control.
+
+A successful response has this shape:
+
+```json
+{
+  "access_token": "<access-token>",
+  "token_type": "Bearer",
+  "expires_in": 900,
+  "refresh_token": "<refresh-token>",
+  "scope": "openid profile email",
+  "id_token": "<id-token>"
+}
+```
+
+The exact lifetime is environment policy. Use `expires_in`; do not assume a
+fixed value.
+
+## Refresh tokens
+
+Request `offline_access` only when the application needs to continue after the
+interactive session. Store refresh tokens in a confidential backend or another
+platform-appropriate secure store. NamoID rotates refresh tokens, so replace
+the stored token with the newest token returned by every successful refresh.
+
+```bash
+curl -X POST "${NAMOID_ISSUER}/v1/oauth/token" \
+  -H "Content-Type: application/x-www-form-urlencoded" \
+  --data-urlencode "grant_type=refresh_token" \
+  --data-urlencode "client_id=${NAMOID_CLIENT_ID}" \
+  --data-urlencode "refresh_token=${NAMOID_REFRESH_TOKEN}"
+```
+
+## UserInfo
+
+Call UserInfo with an access token issued by the same environment. Claims are
+limited by the token's granted scopes.
+
+```bash
+curl "${NAMOID_ISSUER}/v1/oauth/userinfo" \
+  -H "Authorization: Bearer ${NAMOID_ACCESS_TOKEN}"
+```
+
+The stable user identifier is `sub`. Do not use an email address as the primary
+database key because an address can change.
+
+## Validate tokens
+
+Validate ID and access tokens with an established OpenID Connect or JWT library:
+
+1. Fetch signing keys from the discovered `jwks_uri` and cache them according
+   to the response headers.
+2. Require the expected RS256 signature.
+3. Match `iss` to the exact environment issuer.
+4. Match `aud` to the intended client or resource.
+5. Enforce `exp`, `iat`, and `nbf` when present.
+6. For ID tokens, verify the `nonce` from the authorization attempt.
+
+Never accept a token merely because its signature is structurally valid.
+
+## Revoke a refresh token
+
+Revocation follows RFC 7009 and accepts a form-encoded request. NamoID returns
+the same success response for a newly revoked, already revoked, or unknown token.
+
+```bash
+curl -X POST "${NAMOID_ISSUER}/v1/oauth/revoke" \
+  -H "Content-Type: application/x-www-form-urlencoded" \
+  --data-urlencode "client_id=${NAMOID_CLIENT_ID}" \
+  --data-urlencode "token=${NAMOID_REFRESH_TOKEN}" \
+  --data-urlencode "token_type_hint=refresh_token"
+```
+
+Revoking the refresh token does not replace clearing the application's own
+session cookie.
+
+## Scopes
+
+Use discovery and the application's Console configuration as the source of
+truth. Common identity scopes are:
+
+| Scope | Purpose |
+| --- | --- |
+| `openid` | Requests OpenID Connect identity and an ID token |
+| `profile` | Requests basic profile claims |
+| `email` | Requests email and email-verification claims |
+| `phone` | Requests phone and phone-verification claims when available |
+| `offline_access` | Requests refresh-token access |
+
+Unknown, disabled, or disallowed scopes are rejected. Ask only for data the
+application uses.
+
+## Errors
+
+OAuth endpoints return standard error codes such as `invalid_request`,
+`invalid_client`, `invalid_grant`, `invalid_scope`, and
+`unsupported_grant_type`. Treat error descriptions as diagnostic text rather
+than stable programmatic values.
+
+Do not automatically retry authorization codes or refresh tokens after an
+`invalid_grant` response. Start a new sign-in attempt when user interaction is
+required.
+
+## Related guides
+
+- [NamoID Auth flow](/guides/hosted-login)
+- [JavaScript SDK](/sdks/javascript)
+- [React SDK](/sdks/react)
+- [Next.js SDK](/sdks/nextjs)
