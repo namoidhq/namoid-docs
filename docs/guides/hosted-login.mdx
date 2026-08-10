@@ -1,41 +1,87 @@
 ---
 title: NamoID Auth flow
-description: Understand the supported NamoID Auth redirect and callback flow.
+description: Understand the standards-based redirect, callback, token, and logout flow used by Hosted Auth.
 ---
 
-NamoID Auth is the hosted authentication UI NamoID renders for your users. Your
-application redirects to it instead of collecting credentials itself.
+NamoID Auth is the hosted authentication UI for an application. It performs
+credential entry, social federation, passkeys, MFA, consent, recovery, and
+account policy outside the application's DOM.
 
-## Environment hosts
+Underneath the SDK, Hosted Auth uses OpenID Connect Authorization Code with
+S256 PKCE.
+
+## End-to-end flow
+
+1. The application starts an authorization transaction with its Client ID,
+   exact callback URI, `state`, `nonce`, and S256 PKCE challenge.
+2. The browser opens the environment's discovered `/oauth/authorize` endpoint.
+3. NamoID performs the configured authentication ceremony.
+4. NamoID redirects to the registered callback with a single-use `code`, the
+   original `state`, and the authorization-server issuer when advertised.
+5. The application validates the response and exchanges the code at the
+   discovered `/v1/oauth/token` endpoint using the original PKCE verifier.
+6. The application validates the signed ID token and loads UserInfo before
+   creating its own session.
+
+Use discovery at:
 
 ```text
-Test: https://<slug>.sandbox.namoid.in
-Live: https://<slug>.id.namoid.in
+https://<environment-host>/.well-known/openid-configuration
 ```
 
-The SDK resolves the NamoID Auth base URL from the application Auth key. Do not
-construct the hostname from the project name or add the URL, issuer, or
-application ID to SDK configuration.
+Do not hard-code OAuth endpoints or infer an environment hostname from a
+project name. The SDK resolves the issuer from the Client ID and validates that
+discovery returns the expected application context.
 
-## Supported flow
+## Public and confidential applications
 
-1. Redirect to `/sign-in`, `/sign-up`, or `/waitlist` with `return_to`, `state`,
-   and a completion mode.
-2. Public clients include an S256 PKCE challenge.
-3. NamoID authenticates the user and redirects to `return_to` with a one-time
-   `code` and the original `state`.
-4. Verify `state`, then exchange the code at `POST /v1/auth/hosted/exchange`.
+Public browser, mobile, and desktop applications use a Client ID plus PKCE.
+They cannot keep a secret.
 
-Use an application Auth publishable key for a public browser client or an
-application Auth secret key for a confidential server integration. Each key is
-scoped to one application and environment, so Test and Live configuration
-cannot be mixed accidentally. Keep secret keys on the server.
+Confidential server applications use a Client ID, a server-only Client Secret,
+and PKCE. Use the Next.js SDK or another trusted backend so transaction state,
+tokens, and the application session remain outside browser JavaScript.
 
-The [JavaScript](/sdks/javascript), [React](/sdks/react), and
-[Next.js](/sdks/nextjs) SDKs implement this flow.
+## Identity scopes
+
+Official SDKs request the ordinary identity scopes required for sign-in.
+Customers do not need to configure `openid`, `profile`, and `email` manually.
+The confidential Next.js flow also requests `offline_access` so it can rotate a
+server-held refresh token.
+
+Custom resource scopes are a separate authorization concern and should be
+requested only when the application actually calls that resource.
+
+## Callback validation
+
+Before treating sign-in as complete, validate:
+
+- exact callback URI;
+- `state` against the one-time transaction;
+- response issuer when the server advertises it;
+- PKCE verifier during code exchange;
+- ID-token signature, issuer, audience, expiry, and nonce;
+- UserInfo subject against the ID-token subject.
+
+Authorization codes are single use. Start a fresh sign-in when an attempt is
+missing, expired, opened in another browser, or already consumed.
 
 ## Sign-out
 
-Clear your application's own session when signing out. The Next.js SDK can also
-revoke the NamoID session and redirect through the environment's `/sign-out`
-page.
+A complete sign-out can involve three distinct actions:
+
+1. Clear the application's own session.
+2. Revoke its access or refresh token grant through the discovered revocation
+   endpoint.
+3. When desired, redirect through the discovered end-session endpoint with a
+   retained ID-token hint to clear the NamoID browser SSO session.
+
+The Next.js SDK implements grant revocation and RP-initiated logout. A public
+SPA that stores no durable session can clear its in-memory state and use the
+discovered logout endpoint when it retains the required ID-token hint.
+
+## Related documentation
+
+- [Getting started](/getting-started)
+- [Login delivery modes](/guides/login-delivery-modes)
+- [Authentication API](/api/auth)

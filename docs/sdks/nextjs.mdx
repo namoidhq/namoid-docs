@@ -1,12 +1,13 @@
 ---
 title: Next.js SDK
-description: Use @namoidhq/nextjs for a server-side NamoID Auth transaction in the Next.js App Router.
+description: Use @namoidhq/nextjs for confidential OIDC transactions, callbacks, refresh, revocation, and logout.
 ---
 
-`@namoidhq/nextjs` implements the confidential NamoID Auth flow for the Next.js
-App Router. It stores short-lived transaction state in `HttpOnly` cookies,
-exchanges the callback code with an Auth secret key, and validates the returned
-access token. This guide requires version 1.1.0 or later.
+`@namoidhq/nextjs` is the confidential App Router adapter for NamoID Hosted
+Auth. It keeps transaction state, the Client Secret, PKCE verifier, callback
+validation, refresh tokens, and application sessions in trusted server code.
+
+This guide requires `@namoidhq/nextjs` 3.0.0 or later.
 
 ## Install
 
@@ -14,124 +15,135 @@ access token. This guide requires version 1.1.0 or later.
 pnpm add @namoidhq/nextjs @namoidhq/js
 ```
 
-## Configure the client
+## Configure once
 
 ```ts
 // lib/namoid.ts
 import { createNamoIDNextClient } from "@namoidhq/nextjs";
 
-function required(name: string): string {
-  const value = process.env[name];
-  if (!value) throw new Error(`${name} is required`);
-  return value;
-}
-
-export function getNamoID() {
-  return createNamoIDNextClient({
-    authSecretKey: required("NAMOID_AUTH_SECRET_KEY"),
-    appBaseUrl: process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000",
-    apiBaseUrl: process.env.NAMOID_API_BASE_URL,
-    callbackPath: "/api/auth/callback/namoid",
-    postLoginRedirectPath: "/dashboard",
-    postLogoutRedirectPath: "/login",
-  });
-}
+export const namoid = createNamoIDNextClient({
+  clientId: process.env.NAMOID_CLIENT_ID!,
+  clientSecret: process.env.NAMOID_CLIENT_SECRET!,
+  appBaseUrl: process.env.NEXT_PUBLIC_APP_URL!,
+  callbackPath: "/api/auth/callback/namoid",
+  postLoginRedirectPath: "/dashboard",
+  postLogoutRedirectPath: "/login",
+});
 ```
 
 ```bash
-NAMOID_AUTH_SECRET_KEY=namoid_auth_sk_test_…
+NAMOID_CLIENT_ID=namoid_client_test_…
+NAMOID_CLIENT_SECRET=namoid_secret_test_…
 NEXT_PUBLIC_APP_URL=http://localhost:3000
 ```
 
-The secret key resolves the application, environment, and Hosted Auth domain.
-Do not add an application ID, issuer, or Hosted Auth URL. Keep client creation
-inside `getNamoID()` so a production build can finish before runtime secrets are
-injected.
+Create a **confidential web application** in the Console and register this exact
+callback URL:
 
-The defaults are:
+```text
+http://localhost:3000/api/auth/callback/namoid
+```
 
-- callback path: `/api/auth/callback/namoid`
-- post-login path: `/`
-- post-logout path: `/login`
-- transaction lifetime: 10 minutes
-
-Optional settings include `apiBaseUrl`, `callbackPath`, `cookiePrefix`,
-`transactionMaxAgeSeconds`, and a custom `fetcher`.
+Keep the Client Secret server-side. Do not prefix it with `NEXT_PUBLIC_`.
 
 ## Login route
 
 ```ts
 // app/api/auth/login/route.ts
-import { getNamoID } from "@/lib/namoid";
+import { namoid } from "@/lib/namoid";
 
-export async function GET() {
-  return getNamoID().login({ returnTo: "/dashboard" });
-}
+export const GET = () => namoid.login();
 ```
 
-Pass `mode: "sign_up"` or `mode: "waitlist"` to start another NamoID Auth
-page. `returnTo` must be a relative application path.
+Pass `{ returnTo: "/dashboard", prompt: "login" }` when you need an explicit
+destination and a fresh authentication ceremony. `returnTo` must remain a
+relative application path.
 
 ## Callback route
 
 ```ts
 // app/api/auth/callback/namoid/route.ts
-import { getNamoID } from "@/lib/namoid";
+import { namoid } from "@/lib/namoid";
 
-export async function GET(request: Request) {
-  return getNamoID().callback(request, {
-    async onSuccess({ tokens, transaction }) {
-      // Store tokens in your server-side session here.
-      // transaction.returnTo is validated as a relative path.
-      return Response.redirect(
-        new URL(transaction.returnTo, request.url),
-        302,
-      );
+export const GET = (request: Request) =>
+  namoid.callback(request, {
+    async onSuccess({ tokens, identity }) {
+      // Create your own opaque, HttpOnly application session here.
+      // Keep NamoID tokens server-side.
+      return new Response(null, {
+        status: 302,
+        headers: { location: "/dashboard" },
+      });
     },
     async onError(error) {
       console.error(error);
-      return Response.redirect(
-        new URL("/login?error=auth", request.url),
-        302,
-      );
+      return new Response(null, {
+        status: 302,
+        headers: { location: "/login?error=auth" },
+      });
     },
   });
-}
 ```
 
-Without `onSuccess`, the SDK redirects to the transaction's `returnTo`. Without
-`onError`, it redirects to the configured post-logout path with an error query
-parameter.
+The SDK validates transaction age, state, response issuer, PKCE, the signed ID
+token, nonce, and the UserInfo subject before calling `onSuccess`. Transaction
+cookies are `HttpOnly`, `SameSite=Lax`, and `Secure` on HTTPS.
 
-## Logout route
+## Identity scopes
+
+The SDK requests `openid profile email` internally and adds `offline_access`
+for this confidential flow. Customers do not configure these scopes for
+ordinary sign-in.
+
+A refresh token is returned only when granted by the issuer. Store it in a
+protected server-side session and replace it after every successful rotation.
+
+## Refresh
 
 ```ts
-// app/api/auth/logout/route.ts
-import { getNamoID } from "@/lib/namoid";
-
-export async function POST() {
-  const session = await readYourServerSession();
-
-  return getNamoID().logout({
-    accessToken: session?.accessToken,
-    refreshToken: session?.refreshToken,
-  });
-}
+const rotated = await namoid.refresh(serverSession.refreshToken);
 ```
 
-When an access token is supplied, the SDK revokes the native session. It then
-redirects through the environment's `/sign-out` page to clear the hosted
-browser session. Set `clearHostedSession: false` when only the local application
-session should end.
+Update the server-side session with the rotated token response.
 
-## Security notes
+## Logout
 
-- Keep `authSecretKey` server-side.
-- Use an application Auth secret key from the same Test or Live environment as
-  the Hosted Auth configuration you intend to use.
-- Store returned tokens in a server-side session, not browser storage.
-- The SDK's transaction cookies are `HttpOnly`, `SameSite=Lax`, and `Secure`
-  whenever `appBaseUrl` uses HTTPS.
-- Create the configured callback URL in the environment's NamoID Auth settings.
+```ts
+return namoid.logout({
+  refreshToken: serverSession.refreshToken,
+  idTokenHint: serverSession.idToken,
+});
+```
 
-This package implements NamoID Auth for the Next.js App Router.
+The SDK revokes the application grant. Supplying the retained ID-token hint also
+redirects through the discovered end-session endpoint to clear the NamoID
+browser SSO session and return to the registered post-logout destination.
+
+Clear your own application session as part of the same operation.
+
+## Options
+
+| Option | Purpose |
+| --- | --- |
+| `clientId` | Public application identifier |
+| `clientSecret` | Confidential server credential |
+| `appBaseUrl` | Absolute origin used for callbacks and safe redirects |
+| `callbackPath` | Callback route; defaults to `/api/auth/callback/namoid` |
+| `postLoginRedirectPath` | Default relative destination after sign-in |
+| `postLogoutRedirectPath` | Default relative destination after logout |
+| `errorRedirectPath` | Default relative destination for callback errors |
+| `cookiePrefix` | Prefix for short-lived transaction cookies |
+| `transactionMaxAgeSeconds` | Transaction lifetime; defaults to 10 minutes |
+| `fetcher` | Optional custom `fetch` implementation |
+
+The SDK intentionally discovers the issuer and OAuth endpoints. Do not add an
+issuer, Hosted Auth URL, or application ID to configuration.
+
+## Production checklist
+
+- Use separate Test and Live Client IDs and secrets.
+- Register exact callback and post-logout URLs.
+- Keep tokens in a protected server-side session.
+- Rotate refresh tokens and handle revoked or expired grants by restarting sign-in.
+- Clear the local application session during logout.
+- Avoid logging codes, tokens, secrets, or identity claims.

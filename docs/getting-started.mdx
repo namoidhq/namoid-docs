@@ -1,28 +1,37 @@
 ---
 title: Getting started
-description: Add a NamoID Auth sign-in flow to a browser application.
+description: Add NamoID Hosted Auth to a browser application using OpenID Connect and PKCE.
 ---
 
-This guide uses the published `@namoidhq/js` package and a Test environment.
+This guide uses `@namoidhq/js` 3.1.0 or later with a public application in a
+Test environment. React applications can use the higher-level
+[React SDK](/sdks/react) to complete and validate the same flow.
 
-## 1. Create a project
+## 1. Create a project and application
 
 Sign in at [console.namoid.in](https://console.namoid.in/login), create a
-tenant, and create a project. Select the Test environment while integrating.
+workspace and project, then select the Test environment.
 
-## 2. Configure NamoID Auth
+Create a **Browser / SPA** application and register the exact callback URL your
+application will use, for example:
 
-In the selected environment:
+```text
+http://localhost:5173/auth/callback
+```
 
-1. Enable one or more sign-in methods shown as available.
-2. Add your exact callback URL and browser origin under **NamoID Auth**.
-3. Create an application Auth publishable key.
+Also register the browser origin when the Console requests one. Copy the Test
+Client ID. A browser application must not have or use a Client Secret.
 
-Use the key shown in the Console. Do not use a secret key in browser code.
-There is no application ID, issuer, or Hosted Auth URL to copy into the SDK:
-the key resolves that context for you.
+## 2. Configure sign-in
 
-## 3. Install the JavaScript SDK
+In the same Test environment:
+
+1. Enable at least one supported sign-in method.
+2. Choose whether sign-up or waitlist entry is available.
+3. Add managed Test users if you want to test email OTP without sending email.
+4. Open Hosted Auth once from the Console to verify the branding and access mode.
+
+## 3. Install the SDK
 
 ```bash
 pnpm add @namoidhq/js
@@ -32,67 +41,92 @@ pnpm add @namoidhq/js
 import { createNamoIDClient } from "@namoidhq/js";
 
 export const namoid = createNamoIDClient({
-  publishableKey: "namoid_auth_pk_test_…",
+  clientId: "namoid_client_test_…",
 });
 ```
 
-Use `@namoidhq/js` version 1.1.0 or later.
+The Client ID lets the SDK resolve the correct application, issuer, and Hosted
+Auth domain. Do not configure an issuer, application ID, or global Hosted Auth
+URL manually.
 
 ## 4. Start sign-in
 
-Create a state and PKCE transaction before redirecting:
+Start the flow from a direct user action and keep the one-time transaction only
+until the callback:
 
 ```ts
-const transaction = await namoid.hostedAuth.createPublicTransaction();
-sessionStorage.setItem("namoid_transaction", JSON.stringify(transaction));
-
-await namoid.hostedAuth.redirect({
-  mode: "sign_in",
-  returnTo: "https://app.example.com/auth/callback",
-  state: transaction.state,
-  completionMode: "public",
-  codeChallenge: transaction.codeChallenge,
-  codeChallengeMethod: transaction.codeChallengeMethod,
+const started = await namoid.hostedAuth.start({
+  redirectUri: "http://localhost:5173/auth/callback",
 });
+
+sessionStorage.setItem(
+  "namoid_transaction",
+  JSON.stringify(started.transaction),
+);
+
+window.location.assign(started.authorizationUrl);
 ```
+
+The SDK creates `state`, `nonce`, and an S256 PKCE verifier and discovers the
+environment's standard authorization endpoint.
 
 ## 5. Complete the callback
 
-Validate the returned state before exchanging the one-time code:
+On the registered callback route, verify the returned state before exchanging
+the single-use authorization code:
 
 ```ts
-const params = new URLSearchParams(window.location.search);
-const code = params.get("code");
-const returnedState = params.get("state");
+const callback = new URL(window.location.href);
 const raw = sessionStorage.getItem("namoid_transaction");
 const transaction = raw ? JSON.parse(raw) : null;
 
-if (!code || !transaction || returnedState !== transaction.state) {
-  throw new Error("Invalid NamoID Auth callback");
+if (!transaction || callback.searchParams.get("state") !== transaction.state) {
+  throw new Error("Invalid authorization state");
 }
 
-sessionStorage.removeItem("namoid_transaction");
+const code = callback.searchParams.get("code");
+if (!code) throw new Error("Authorization code is missing");
+
 const tokens = await namoid.hostedAuth.exchangeCode({
   code,
+  redirectUri: transaction.redirectUri,
   codeVerifier: transaction.codeVerifier,
 });
+
+const identity = await namoid.hostedAuth.userInfo(tokens.access_token);
+sessionStorage.removeItem("namoid_transaction");
 ```
 
-Treat returned tokens as credentials. Prefer a server-side application session
-for production web applications.
+For production browser applications, prefer `@namoidhq/react`, which also
+validates the response issuer, signed ID token, nonce, and UserInfo subject.
+Do not persist bearer or refresh tokens in browser storage. Use a confidential
+backend-for-frontend when the application needs a durable session.
 
-## 6. Verify the integration
+## 6. Test and move to Live
 
-Complete a Test sign-in and confirm that the user appears in the selected
-environment's **Users** view.
+Confirm sign-in, callback validation, application session creation, refresh,
+and logout in Test. Then create or configure the corresponding Live
+application with its production callback URL and Live credentials.
 
-To test email OTP without sending a message, create a managed identity from
-**Users** > **Test users** and use its generated email address and current OTP.
-See [Test users](/guides/test-users) for the complete workflow.
+Never reuse a Test Client ID in Live.
+
+## Runnable examples
+
+The [NamoID examples](https://examples.namoid.in/) use the same SDK and OIDC
+contract documented here:
+
+- [React SPA](https://github.com/namoidhq/namoid-examples/tree/main/hosted-auth/react-spa)
+  for a popup-first public client with redirect fallback.
+- [Next.js](https://github.com/namoidhq/namoid-examples/tree/main/hosted-auth/nextjs)
+  for a confidential backend-for-frontend.
+- [Express and React](https://github.com/namoidhq/namoid-examples/tree/main/hosted-auth/express-react)
+  for a separate frontend and API server.
+- [Next.js and Supabase](https://github.com/namoidhq/namoid-examples/tree/main/hosted-auth/nextjs-supabase)
+  for NamoID authentication with application data in Supabase.
 
 ## Next steps
 
-- Review the [NamoID Auth flow](/guides/hosted-login).
-- Create [Test users](/guides/test-users) for repeatable email OTP testing.
-- Use the [React SDK](/sdks/react) or [Next.js SDK](/sdks/nextjs) when those
-  frameworks match your application.
+- [React SDK](/sdks/react)
+- [Next.js SDK](/sdks/nextjs)
+- [Login delivery modes](/guides/login-delivery-modes)
+- [Authentication API](/api/auth)

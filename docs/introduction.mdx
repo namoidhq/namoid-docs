@@ -1,41 +1,68 @@
 ---
 title: Introduction
-description: Add NamoID Auth sign-in and sign-up to your application.
+description: Add secure, branded authentication to an application with NamoID.
 ---
 
-NamoID Auth provides hosted sign-in and sign-up pages. Your application redirects a
-user to NamoID and receives a one-time code after authentication. Use a NamoID
-SDK to exchange that code for a NamoID session.
+NamoID provides branded Hosted Auth for consumer applications. Your application
+starts sign-in using a Client ID, NamoID performs the authentication ceremony,
+and the application receives a short-lived authorization code through standard
+OpenID Connect Authorization Code with S256 PKCE.
 
-An application Auth key selects the application, Test or Live environment, and
-Hosted Auth domain. SDK integrations do not require a separate application ID,
-issuer, or Hosted Auth URL.
+Use an official SDK to keep discovery, PKCE, state, nonce, callback validation,
+token exchange, refresh, revocation, and logout out of application code.
 
-## Supported integration
+## What you configure
 
-- NamoID Auth pages for Test and Live environments.
-- Sign-in methods exposed as available in the NamoID Console.
-- Separate Test and Live users, keys, and settings.
-- Managed Test users for repeatable email OTP testing without sending email.
-- Published JavaScript, React, and Next.js SDKs for NamoID Auth.
-
-## Resource hierarchy
+Each application belongs to one project environment:
 
 ```text
-Tenant
+Workspace
 └── Project
-    ├── Test environment  https://<slug>.sandbox.namoid.in
-    │   ├── Application Auth keys
+    ├── Test environment
+    │   ├── Applications
     │   ├── End users
     │   └── Managed test users
-    └── Live environment  https://<slug>.id.namoid.in
-        ├── Application Auth keys
+    └── Live environment
+        ├── Applications
         └── End users
 ```
 
+An application has its own Client ID, registered callback URLs, application
+type, and sign-in policy. Confidential applications also have a Client Secret.
+Test and Live applications are separate trust boundaries and use different
+credentials, users, and issuers.
+
+## Choose an application type
+
+| Application | Credential | Recommended integration |
+| --- | --- | --- |
+| Browser SPA | Client ID | `@namoidhq/react` or `@namoidhq/js` with PKCE |
+| Server-rendered web app | Client ID and Client Secret | `@namoidhq/nextjs` or another confidential backend |
+| Mobile or desktop | Client ID | OpenID Connect Authorization Code with PKCE |
+
+A Client ID identifies an application and is safe to expose. A Client Secret
+authenticates confidential server code and must never be placed in a browser,
+mobile binary, public repository, analytics event, or URL.
+
+## Supported sign-in experience
+
+- Hosted redirect for the simplest and safest integration.
+- Hosted popup for applications that want an in-page launch experience.
+- Branded sign-in, sign-up, account, and waitlist pages when enabled.
+- Email, password, passkey, social-provider, and MFA ceremonies configured in
+  the Console.
+- Managed Test users for repeatable email OTP testing without sending email.
+- JavaScript, React, and Next.js SDKs.
+
+NamoID keeps credentials, provider tokens, WebAuthn challenges, MFA, recovery,
+and consent inside Hosted Auth. See [Login delivery modes](/guides/login-delivery-modes)
+before choosing a custom presentation.
+
 ## Where to next
 
-- Follow [Getting started](/getting-started) for a NamoID Auth integration.
-- Use [Test users](/guides/test-users) to exercise email OTP in Test.
+- Follow [Getting started](/getting-started) for your first integration.
+- Read the [NamoID Auth flow](/guides/hosted-login).
 - Use the [Next.js SDK](/sdks/nextjs), [React SDK](/sdks/react), or
   [JavaScript SDK](/sdks/javascript).
+- Use [Test users](/guides/test-users) for safe email OTP testing.
+- Consult the [Authentication API](/api/auth) for the underlying protocol.

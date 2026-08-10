@@ -1,11 +1,11 @@
 ---
 title: React SDK
-description: Add NamoID Auth buttons and configuration-aware sign-in panels to a React application.
+description: Add validated NamoID Hosted Auth redirects, popup buttons, and sign-in modals to React.
 ---
 
-`@namoidhq/react` wraps the JavaScript SDK with a provider, hooks, and Hosted
-Auth components. It is a client-side package and requires version 1.1.0 or
-later.
+`@namoidhq/react` wraps the JavaScript SDK with a provider, hooks, validated
+callback helpers, and Hosted Auth components. This guide requires
+`@namoidhq/react` and `@namoidhq/js` 3.1.0 or later.
 
 ## Install
 
@@ -20,71 +20,129 @@ import { NamoIDProvider } from "@namoidhq/react";
 
 export function App() {
   return (
-    <NamoIDProvider publishableKey="namoid_auth_pk_test_…">
+    <NamoIDProvider clientId="namoid_client_test_…">
       <Routes />
     </NamoIDProvider>
   );
 }
 ```
 
-The provider also accepts `apiBaseUrl` and `fetcher`. You do not provide an
-application ID or Hosted Auth URL: the publishable key selects the application,
-environment, and branded Hosted Auth pages.
+The Client ID is public and selects the application, issuer, environment, and
+branded Hosted Auth pages. Never place a Client Secret in a React bundle.
 
-## Add a sign-in button
+## Hosted redirect
 
 ```tsx
-import { HostedAuthButton } from "@namoidhq/react";
+import { SignIn } from "@namoidhq/react";
 
-export function Login() {
-  return (
-    <HostedAuthButton returnTo="https://app.example.com/auth/callback">
-      Continue with NamoID
-    </HostedAuthButton>
-  );
-}
+<SignIn redirectUri="https://app.example.com/auth/callback" />
 ```
 
-The button creates and stores a state/PKCE transaction, then redirects to
-NamoID Auth. Set `mode="sign_up"` or `mode="waitlist"` for another flow.
+The component reads public application configuration, creates a state, nonce,
+and PKCE transaction, then opens Hosted Auth. Use `HostedAuthButton` for a
+minimal button with your own surrounding layout.
 
-## Complete the callback
+Complete the callback with the same provider client:
 
 ```tsx
 import { completeHostedAuthRedirect, useNamoID } from "@namoidhq/react";
 import { useEffect } from "react";
 
 export function AuthCallback() {
-  const client = useNamoID();
+  const namoid = useNamoID();
 
   useEffect(() => {
-    void completeHostedAuthRedirect(client).then((tokens) => {
-      // Prefer sending tokens to your backend to establish an app session.
-      console.log(tokens.access_token);
+    void completeHostedAuthRedirect(namoid).then(({ identity }) => {
+      console.log(identity.sub);
     });
-  }, [client]);
+  }, [namoid]);
 
   return <p>Completing sign-in…</p>;
 }
 ```
 
-`completeHostedAuthRedirect` verifies the returned state against the saved
-transaction and exchanges the one-time code with its PKCE verifier.
+The helper validates state, authorization-response issuer, the signed ID token,
+nonce, and the UserInfo subject before returning tokens and identity.
 
-## Configuration-aware components
+## Popup button
+
+Register a same-origin popup callback and render
+`relayHostedAuthPopupCallback()` from `@namoidhq/js` on that route. Then use:
 
 ```tsx
-import { AuthCard, SignIn, SignUp, Waitlist } from "@namoidhq/react";
+import { HostedAuthPopupButton } from "@namoidhq/react";
 
-<SignIn returnTo="https://app.example.com/auth/callback" />
-<SignUp returnTo="https://app.example.com/auth/callback" />
-<Waitlist returnTo="https://app.example.com/auth/callback" />
-<AuthCard mode="sign_in" returnTo="https://app.example.com/auth/callback" />
+<HostedAuthPopupButton
+  redirectUri={`${window.location.origin}/auth/namoid/popup`}
+  onSuccess={({ identity }) => console.log(identity.sub)}
+  onError={(error) => console.error(error)}
+>
+  Sign in
+</HostedAuthPopupButton>
 ```
 
-These components load the environment's public configuration and disable flows
-that are not currently available. `useAuthConfig()` exposes the same config,
-loading, error, and reload state for custom UI.
+This is the same OIDC + PKCE flow in a secondary window. The callback bridge
+relays only the authorization result.
 
-Use `useNamoID()` when you need direct access to the underlying JavaScript
-client.
+## Drop-in sign-in and modal
+
+`NamoIDSignIn` reads public application configuration and renders direct actions
+for configured social providers and hosted email-code, magic-link, phone-code,
+password, and passkey ceremonies.
+
+```tsx
+import { NamoIDSignIn } from "@namoidhq/react";
+
+<NamoIDSignIn
+  redirectUri={`${window.location.origin}/auth/namoid/popup`}
+  onComplete={({ identity }) => console.log(identity.sub)}
+  appearance={{ accent: "#0d684f", radius: 16 }}
+/>
+```
+
+For an accessible dialog controlled by your application:
+
+```tsx
+const [open, setOpen] = useState(false);
+
+<button onClick={() => setOpen(true)}>Sign in</button>
+<NamoIDSignInModal
+  open={open}
+  onOpenChange={setOpen}
+  redirectUri={`${window.location.origin}/auth/namoid/popup`}
+  onComplete={() => setOpen(false)}
+/>
+```
+
+Use `useNamoIDSignIn()` for custom markup while retaining the same popup and
+redirect-fallback behavior. It can select a configured provider or hosted
+method, but credentials and authentication challenges remain inside Hosted
+Auth.
+
+## Native email OTP preview
+
+`useNamoIDNativeEmailOtp()` and `NamoIDNativeEmailOtpSignIn` are guarded
+Test-only preview APIs. They are not general Live sign-in components. The SDK
+loads NamoID-managed Cloudflare Turnstile configuration and obtains fresh
+challenge tokens; customers do not configure the site key or action names.
+
+```tsx
+<NamoIDNativeEmailOtpSignIn
+  redirectUri={`${window.location.origin}/auth/namoid/popup`}
+  onComplete={({ identity }) => console.log(identity.sub)}
+/>
+```
+
+Other methods, social federation, passkeys, and policy-driven MFA continue
+through Hosted Auth. Applications with a restrictive Content Security Policy
+must allow `https://challenges.cloudflare.com` for Turnstile scripts and frames.
+
+See [Login delivery modes](/guides/login-delivery-modes) for the product and
+security boundary.
+
+## Session guidance
+
+The React adapter keeps only short-lived protocol state in `sessionStorage`.
+It does not persist bearer or refresh tokens. Use a confidential
+backend-for-frontend such as the [Next.js SDK](/sdks/nextjs) when the application
+needs durable sessions or refresh tokens.

@@ -1,0 +1,71 @@
+---
+title: Login delivery modes
+description: Choose between a hosted redirect, hosted popup, and the guarded native email OTP preview.
+---
+
+All supported login presentations finish through OpenID Connect Authorization
+Code with S256 PKCE. The difference is how the authentication ceremony is
+presented—not how the application receives or validates identity.
+
+## Hosted redirect
+
+**Recommended for most applications.** The browser navigates to branded NamoID
+Hosted Auth and returns to an exact registered callback URI.
+
+Use it when:
+
+- you want the smallest and safest integration;
+- the application uses social providers, passkeys, MFA, recovery, or custom
+  registration fields;
+- popup restrictions or embedded-browser behavior are a concern.
+
+Hosted redirect keeps all authentication UI and sensitive ceremony data inside
+NamoID.
+
+## Hosted popup
+
+Hosted popup opens the same Hosted Auth ceremony in a focused secondary window.
+A same-origin callback bridge returns only the bounded authorization response
+to the opener; tokens and profile data are never relayed through the popup.
+
+Use it when an SPA wants an in-page launch experience without rendering
+credentials in its own DOM. The application must register a same-origin popup
+callback and start the popup from a direct user action.
+
+If a browser blocks the popup, use a fresh full-page redirect. Do not reuse the
+popup transaction.
+
+The React SDK provides `HostedAuthPopupButton`, `NamoIDSignIn`, and
+`NamoIDSignInModal` for this presentation.
+
+## Native email OTP preview
+
+Native email OTP is a guarded **Test-only preview** for specifically provisioned
+public SPA applications. It allows the email and OTP fields to render in the
+customer application while still returning an OIDC authorization code protected
+by PKCE.
+
+It is not a general Live configuration option. The backend fails closed unless
+the environment, application, origin, delivery policy, rate limits, and NamoID
+managed Cloudflare Turnstile verification are all available.
+
+Customers do not configure the Turnstile site key, action names, widget IDs, or
+token callbacks. The SDK reads NamoID's public configuration and obtains a
+fresh challenge token for each protected step.
+
+Social providers, passkeys, password, magic link, phone OTP, MFA, consent,
+recovery, waitlists, and custom registration continue through Hosted Auth.
+
+## Choose a mode
+
+| Requirement | Recommended mode |
+| --- | --- |
+| Production default | Hosted redirect |
+| SPA modal or popup experience | Hosted popup with redirect fallback |
+| Social login, passkeys, or MFA | Hosted redirect or popup |
+| Custom email OTP fields during controlled Test evaluation | Native email OTP preview |
+| Durable sessions or refresh tokens | Confidential backend-for-frontend |
+
+An application can expose a popup-first experience while retaining hosted
+redirect as its safe fallback. Do not place a Client Secret or durable refresh
+token in browser code.

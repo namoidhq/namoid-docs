@@ -1,10 +1,10 @@
 ---
 title: JavaScript SDK
-description: Use @namoidhq/js to load public auth configuration and run a PKCE-protected NamoID Auth flow.
+description: Use @namoidhq/js for OIDC discovery, PKCE sign-in, popup delivery, tokens, UserInfo, refresh, revocation, and logout.
 ---
 
 `@namoidhq/js` is the framework-neutral NamoID client for browsers and modern
-JavaScript runtimes. This guide requires version 1.1.0 or later.
+JavaScript runtimes. This guide requires version 3.1.0 or later.
 
 ## Install
 
@@ -18,96 +18,177 @@ pnpm add @namoidhq/js
 import { createNamoIDClient } from "@namoidhq/js";
 
 const namoid = createNamoIDClient({
-  publishableKey: "namoid_auth_pk_test_…",
+  clientId: "namoid_client_test_…",
 });
 ```
 
-Options:
+The Client ID resolves the correct application, environment issuer, and Hosted
+Auth domain. The SDK then uses OpenID Connect discovery instead of hard-coded
+OAuth endpoints.
 
-| Option | Required | Purpose |
-| --- | --- | --- |
-| `publishableKey` | Yes | Application Auth publishable key |
-| `apiBaseUrl` | No | Override `https://api.namoid.in` |
-| `fetcher` | No | Supply a custom `fetch` implementation |
+The Client ID is public. Do not place a Client Secret in browser code.
 
-You do not provide an application ID, issuer, or Hosted Auth URL. The SDK uses
-the publishable key to resolve the correct application, environment, and
-branded Hosted Auth pages.
+## Start a hosted redirect
 
-## Load public configuration
+```ts
+const started = await namoid.hostedAuth.start({
+  redirectUri: "https://app.example.com/auth/callback",
+});
+
+sessionStorage.setItem(
+  "namoid_transaction",
+  JSON.stringify(started.transaction),
+);
+
+window.location.assign(started.authorizationUrl);
+```
+
+The transaction contains short-lived state, nonce, and PKCE values. Retain it
+only until the callback; do not store tokens in the same browser storage.
+
+Official SDKs request the ordinary `openid profile email` identity scopes by
+default. Applications normally do not need to specify scopes for sign-in.
+
+## Complete a public callback
+
+```ts
+const transaction = JSON.parse(
+  sessionStorage.getItem("namoid_transaction")!,
+);
+const callback = new URL(window.location.href);
+
+if (callback.searchParams.get("state") !== transaction.state) {
+  throw new Error("Invalid authorization state");
+}
+
+const tokens = await namoid.hostedAuth.exchangeCode({
+  code: callback.searchParams.get("code")!,
+  redirectUri: transaction.redirectUri,
+  codeVerifier: transaction.codeVerifier,
+});
+
+const identity = await namoid.hostedAuth.userInfo(tokens.access_token);
+sessionStorage.removeItem("namoid_transaction");
+```
+
+For browser applications, prefer the [React SDK](/sdks/react) callback helper
+when possible. It also validates the response issuer, signed ID token, nonce,
+and UserInfo subject before returning identity.
+
+## Open Hosted Auth in a popup
+
+Register a same-origin popup callback such as:
+
+```text
+https://app.example.com/auth/namoid/popup
+```
+
+Render the callback bridge on that route:
+
+```ts
+import { relayHostedAuthPopupCallback } from "@namoidhq/js";
+
+relayHostedAuthPopupCallback();
+```
+
+Then start the popup from a direct user click:
+
+```ts
+const result = await namoid.hostedAuth.popup({
+  redirectUri: `${window.location.origin}/auth/namoid/popup`,
+});
+
+const tokens = await namoid.hostedAuth.exchangeCode({
+  code: result.code,
+  redirectUri: result.transaction.redirectUri,
+  codeVerifier: result.transaction.codeVerifier,
+});
+```
+
+The bridge relays only a bounded authorization response. It never relays tokens,
+profile data, credentials, MFA codes, or provider tokens. Handle
+`popup_blocked`, `popup_closed`, and `popup_timeout` by offering a fresh hosted
+redirect.
+
+Configured hosted methods can be selected without collecting credentials in
+the application DOM:
+
+```ts
+await namoid.hostedAuth.popup({
+  redirectUri: `${window.location.origin}/auth/namoid/popup`,
+  identityProvider: "google",
+});
+```
+
+Use `authenticationMethod` for a configured hosted `passkey`, `password`,
+`email_otp`, `magic_link`, or `phone_otp` ceremony.
+
+## Public configuration and discovery
 
 ```ts
 const config = await namoid.auth.getConfig();
-console.log(config.hosted_auth_base_url, config.signin_methods);
+const discovery = await namoid.auth.getDiscovery();
 ```
 
-The response is safe for frontend use and includes the key's application and
-environment context, access mode, enabled sign-in methods, NamoID Auth pages,
-MFA mode, and public branding.
+Public configuration describes the selected application's available pages,
+sign-in methods, social providers, access mode, branding, support contact, and
+delivery modes. Discovery is the source of truth for OAuth/OIDC endpoints and
+capabilities.
 
-## Start a public NamoID Auth flow
+## Refresh, revocation, and logout
 
-Create the transaction before redirecting and retain it in session storage:
+Refresh tokens belong in a confidential backend or another platform-appropriate
+secure store—not browser storage.
 
 ```ts
-const transaction = await namoid.hostedAuth.createPublicTransaction();
-sessionStorage.setItem("namoid_transaction", JSON.stringify(transaction));
+const rotated = await namoid.hostedAuth.refresh({
+  refreshToken,
+  clientSecret,
+});
 
-await namoid.hostedAuth.redirect({
-  mode: "sign_in", // "sign_up" or "waitlist"
-  returnTo: "https://app.example.com/auth/callback",
-  state: transaction.state,
-  completionMode: "public",
-  codeChallenge: transaction.codeChallenge,
-  codeChallengeMethod: transaction.codeChallengeMethod,
+await namoid.hostedAuth.revoke({
+  token: rotated.refresh_token!,
+  tokenTypeHint: "refresh_token",
+  clientSecret,
 });
 ```
 
-Use `hostedAuth.getUrl(options)` when you want the URL without immediately
-redirecting. Both methods are asynchronous because the client may first load
-the environment configuration.
-
-## Complete the callback
+To clear the hosted browser session, retain the ID token and build the discovered
+RP-initiated logout URL:
 
 ```ts
-const params = new URLSearchParams(window.location.search);
-const code = params.get("code");
-const returnedState = params.get("state");
-const raw = sessionStorage.getItem("namoid_transaction");
-const transaction = raw ? JSON.parse(raw) : null;
+const logoutUrl = await namoid.hostedAuth.getLogoutUrl({
+  idTokenHint: idToken,
+  postLogoutRedirectUri: "https://app.example.com/login",
+});
 
-if (!code || !transaction || returnedState !== transaction.state) {
-  throw new Error("Invalid NamoID Auth callback");
-}
+window.location.assign(logoutUrl);
+```
 
-sessionStorage.removeItem("namoid_transaction");
-const tokens = await namoid.hostedAuth.exchangeCode({
-  code,
-  codeVerifier: transaction.codeVerifier,
+Post-logout destinations must be registered for the application.
+
+## Validate an ID token on a server
+
+```ts
+import { validateOIDCIdToken } from "@namoidhq/js/server";
+
+const claims = await validateOIDCIdToken({
+  idToken,
+  discovery,
+  clientId: namoid.clientId,
+  nonce: transaction.nonce,
 });
 ```
 
-Validate state before exchanging the code. Treat the returned access and
-refresh tokens as credentials; avoid persistent browser storage when a
-server-side session is available.
+For a confidential web application, prefer the [Next.js SDK](/sdks/nextjs),
+which validates the callback and keeps application sessions server-side.
 
-## Server helpers
+## Native email OTP preview
 
-The package exports server-only token validation separately:
-
-```ts
-import { validateAuthToken } from "@namoidhq/js/server";
-
-const result = await validateAuthToken({
-  token: accessToken,
-  apiKey: process.env.NAMOID_AUTH_SECRET_KEY!,
-});
-
-if (!result.valid) throw new Error(result.error ?? "Invalid token");
-```
-
-Use `revokeNativeSession` from `@namoidhq/js` to revoke a native access/refresh
-session from a trusted runtime.
+The SDK contains a guarded Test-only native email OTP API. It is available only
+to specifically provisioned public SPA applications and fails closed when the
+required NamoID-managed human verification or environment policy is absent.
+See [Login delivery modes](/guides/login-delivery-modes) before using it.
 
 ## Errors
 
