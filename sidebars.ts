@@ -27,12 +27,12 @@ const sidebars: SidebarsConfig = {
     },
     {
       type: 'category',
-      label: 'Organizations',
+      label: 'Organizations (planned)',
       items: ['organizations/overview'],
     },
     {
       type: 'category',
-      label: 'Billing',
+      label: 'Billing (planned)',
       items: ['billing/customer-billing'],
     },
     {

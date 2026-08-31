@@ -1,17 +1,30 @@
 ---
 title: Customer Organizations and enterprise SSO
-description: Model business workspaces, members, verified domains, SAML connections, and organization-specific authentication policy.
+description: Preview the planned model for business workspaces, members, verified domains, and enterprise SSO.
 ---
 
 # Customer Organizations and enterprise SSO
 
-Customer Organizations model your application's business customers inside one NamoID instance. An Organization has its own members, roles, invitations, verified domains, enterprise connections, authentication policy, lifecycle state, and audit trail.
+<span className="badge badge--secondary">Not available</span>
 
-This feature is distinct from the NamoID workspace where your own team administers projects. Use it only when **Organizations** is available in the selected instance and included in your product agreement.
+:::caution Planned capability
+
+Customer Organizations and enterprise SSO are not currently available to
+NamoID customers. They cannot be enabled through the Console, API, support, or
+the Slack request process. This page describes the intended product model for
+planning and feedback only. Do not make these capabilities a launch dependency.
+
+:::
+
+Customer Organizations are planned to model your application's business customers inside one NamoID instance. An Organization would have its own members, roles, invitations, verified domains, enterprise connections, authentication policy, lifecycle state, and audit trail.
+
+This planned feature is distinct from the NamoID workspace where your own team administers projects.
+
+The workflows below are a preview of the intended design. They are not instructions for a currently available feature.
 
 ## Create an Organization
 
-Open **Organizations**, create a customer Organization, and keep its public Organization ID. The ID can be used for Organization selection in supported OAuth flows and Management API calls; it is not a secret.
+The planned Console workflow would create a customer Organization and return a public Organization ID. The ID would be used for Organization selection in supported OAuth flows and Management API calls; it would not be a secret.
 
 Create one Organization for each independent customer workspace. Do not reuse one Organization merely because two customers share an email domain or identity provider.
 
