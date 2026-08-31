@@ -29,7 +29,9 @@ Under **Applications**, create one application for each independently deployed c
 | SPA | Browser-only application | Do not use one in browser code |
 | Native | Mobile or desktop application | Do not embed one in the app |
 
-Copy a generated Client Secret immediately. NamoID shows it once; store it in your server-side secret manager. Never place it in frontend JavaScript, a mobile binary, source control, logs, or support tickets.
+For a confidential Web application, copy the generated Client Secret immediately. NamoID shows it once; store it in your server-side secret manager. Never place it in frontend JavaScript, a mobile binary, source control, logs, or support tickets.
+
+For an SPA or Native application, record the Client ID and use Authorization Code with PKCE. Public clients send no Client Secret.
 
 ## 4. Register exact URLs
 

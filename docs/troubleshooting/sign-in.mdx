@@ -56,9 +56,10 @@ be expired, revoked, rotated, or replayed. Do not retry the same refresh token.
 
 Confirm:
 
-- Client ID and Client Secret belong to the same application;
+- for a confidential client, the Client ID and server-held Client Secret belong
+  to the same application;
 - credentials are from the intended Instance;
-- a public client is not sending a fabricated secret;
+- an SPA or Native public client sends no Client Secret;
 - a confidential secret was not truncated or exposed through a public
   environment variable;
 - the configured client-authentication method matches the token request.

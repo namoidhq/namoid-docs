@@ -29,7 +29,9 @@ Validate the complete flow in Test first, then configure Live independently.
 - Replace the stored refresh token after every successful rotation.
 - Never place tokens in URLs, analytics, support tools, or application logs.
 - Use secure, `HttpOnly`, appropriately scoped application cookies.
-- Clear the application session and revoke the NamoID grant during logout.
+- Clear the application session, revoke the NamoID grant, and redirect through
+  the discovered `end_session_endpoint` when complete logout must also end the
+  hosted browser SSO session.
 - Test expired, revoked, and replayed refresh-token behavior.
 
 ## Authentication and delivery

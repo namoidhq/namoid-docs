@@ -47,8 +47,8 @@ Use the selected Instance's discovery document and `jwks_uri`:
 1. Verify the RS256 signature with a current signing key.
 2. Require `iss` to equal the exact discovered Instance issuer.
 3. Require `aud` to contain the application's Client ID.
-4. Enforce `exp`, `iat`, and `nbf` when present, with a small clock-skew
-   allowance.
+4. Require and validate `exp` and `iat`. Validate `nbf` when present. Apply
+   only a small clock-skew allowance.
 5. Match the token `nonce` to the authorization transaction.
 6. Reject unexpected algorithms, malformed claims, or an unknown signing key.
 

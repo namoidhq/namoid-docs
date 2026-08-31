@@ -76,7 +76,9 @@ Also reject timestamps outside a small tolerance appropriate for your system, su
 
 After verification:
 
-1. Deduplicate using `X-Idp-Delivery-Id` or the body `id`.
+1. Deduplicate using the signed body `id`. If you also read
+   `X-Idp-Delivery-Id`, verify the signature first and require the header to
+   equal the body `id`; the header itself is not part of the HMAC input.
 2. Persist the accepted event before acknowledging it when processing is asynchronous.
 3. Return a `2xx` response quickly.
 4. Perform slow or failure-prone work in your own queue.
