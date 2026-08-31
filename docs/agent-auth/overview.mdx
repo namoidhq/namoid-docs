@@ -5,9 +5,24 @@ description: Understand NamoID's user-bound authorization model for agents, conn
 
 # Agent Auth overview
 
+<span className="badge badge--warning">Request-only preview</span>
+
+:::warning Not rolled out to every customer
+
+Agent Auth is not generally available and is not automatically enabled for
+NamoID customers. To request access, join the
+[NamoID Slack community](https://join.slack.com/t/namoidcommunity/shared_invite/zt-45cosr2nk-q9aBrzU13mlIAkkUYKnT8w)
+and share your company, Test use case, intended connectors, and security owner.
+Do not post credentials, tokens, provider data, or personal information.
+
+Access is enabled only after NamoID confirms the request. Joining Slack or
+seeing Agent Auth in these docs does not grant access.
+
+:::
+
 Agent Auth gives a customer-facing agent user-approved access to supported external platforms through short-lived, restricted MCP sessions. It is separate from signing a human into your application.
 
-Agent Auth is currently a private preview. The first supported slice is limited to eligible confidential Web or Machine applications in Test and may be restricted to NamoID system workspace members. Do not make it a production dependency until NamoID explicitly enables Live access for your tenant.
+The first supported slice is limited to approved confidential Web or Machine applications in Test. Do not make it a production dependency until NamoID explicitly enables Live access for your tenant.
 
 ## Security model
 
