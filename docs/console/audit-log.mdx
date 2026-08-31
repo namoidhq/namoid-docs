@@ -1,0 +1,41 @@
+---
+title: Audit logs
+description: Investigate authentication and administrative changes using instance and organization event trails.
+---
+
+# Audit logs
+
+The NamoID audit log is an immutable event trail for security-relevant activity. The instance view includes authentication, users, sessions, email, and configuration changes. Workspace-level administration remains in its own scope, and customer Organization activity also has an Organization-specific view.
+
+## Read the instance log
+
+Open **Audit log** inside the intended instance. Events are paginated newest-first. Each row can identify the action, target or aggregate, actor, source IP when retained, and timestamp.
+
+The search field filters only events already loaded in the browser. If an older event is not visible, select **Load more** before concluding it does not exist.
+
+Keep the instance boundary in mind. A change in Test will not appear in the Live instance log, and a workspace-wide membership change may appear only at workspace scope.
+
+## Investigation workflow
+
+For a suspected security or configuration incident:
+
+1. Record the time window, affected instance, user ID, application ID, and any correlation or delivery ID.
+2. Load enough audit history to cover the window, including time before the first observed symptom.
+3. Find the initiating configuration, authentication, session, credential, or user event.
+4. Correlate IDs with your application logs and webhook delivery history.
+5. Contain the issue by revoking the narrowest affected session or credential.
+6. Preserve a factual timeline and the actions taken.
+
+Search by stable IDs when possible. Email addresses, names, and IP addresses can change or be shared, while user, application, session, delivery, and Organization identifiers are more precise.
+
+## What not to put in investigation notes
+
+Do not paste access tokens, refresh tokens, authorization codes, OTPs, passwords, Client Secrets, provider secrets, SAML assertions, or full webhook signing secrets into tickets or chat.
+
+When sharing an event with NamoID support, provide the smallest useful set: timestamp with timezone, instance ID, event type, relevant public resource ID, and observed result. Redact personal data that is not needed for the investigation.
+
+## Audit logs and compliance
+
+Audit history supports investigations and evidence collection, but it is not a complete compliance program. Your application must also govern access to logs, retention, exports, incident response, user-request verification, and any downstream copies of identity data.
+
+Do not use the audit log as an analytics stream. Send product analytics through a separate, consent-appropriate system with its own minimization and retention policy.

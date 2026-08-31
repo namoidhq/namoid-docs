@@ -1,0 +1,58 @@
+---
+title: Registration access policy
+description: Control who can create an account with open, waitlist, invite-only, domain, or closed access.
+---
+
+# Registration access policy
+
+Open **Authentication → Access** to control who may create a new account in the selected instance. The policy is enforced before registration and changes take effect immediately.
+
+Changing registration policy does not delete existing users. Existing users can continue to sign in unless their identity, session, application, or authentication method is separately restricted.
+
+## Access modes
+
+| Mode | New registration behavior |
+| --- | --- |
+| Open | Anyone who completes an enabled sign-up method may create an account |
+| Waitlist | Verified requests remain pending until approved |
+| Invite only | Only exact email addresses added under Users may register |
+| Domain allowlist | Email addresses must belong to one of the configured domains |
+| Closed | No new accounts; existing users can still sign in |
+
+Access policy is instance-scoped. A person allowed in Test is not automatically allowed in Live.
+
+## Invite-only access
+
+After selecting **Invite only**:
+
+1. Open **Users** and select **Allow user**.
+2. Add the exact email address permitted to register.
+3. Share your normal Hosted Auth entry point with that person.
+
+Adding an address grants permission to register; NamoID does not currently send an invitation email. A pending allowed address appears separately until the user completes sign-in. Removing it prevents a new registration but does not delete an already-created user.
+
+## Domain allowlist
+
+Enter normalized email domains such as `example.com`, not URLs or wildcard addresses. At least one domain is required when enabling this mode.
+
+Domain allowlisting controls registration by the asserted email domain. It is not proof that the user is an employee and is not a replacement for enterprise federation, verified-domain ownership, or lifecycle provisioning.
+
+## Waitlist
+
+Waitlist mode collects email-verified access requests instead of creating active users immediately. Open **Waitlist** to search, approve, reject, or export requests.
+
+When approved, a request becomes eligible for the product's activation flow. Test the exact notification and next-sign-in behavior in your instance before promising users an automatic onboarding message.
+
+While waitlist mode is active, the Console locks conflicting access controls. Turning it off changes what happens to future registrations; review pending requests separately.
+
+Waitlist CSV exports contain personal data and should follow the same access and retention controls as user exports.
+
+## Closed access and emergency changes
+
+Closed mode stops new account creation but preserves existing-user sign-in. Use it for a planned private launch or to contain new registrations while investigating abuse.
+
+For an incident, also consider whether to disable an application, hide a provider, revoke sessions, or rotate credentials. Registration policy alone does not invalidate existing sessions.
+
+## Additional controls
+
+You can reject known disposable email domains independently of the main access mode when the control is available. Treat this as abuse reduction, not identity verification: domain lists can have false positives and do not establish who controls a mailbox.

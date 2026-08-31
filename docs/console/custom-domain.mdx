@@ -1,0 +1,47 @@
+---
+title: Custom authentication domain
+description: Verify a customer-owned hostname and understand its effect on the OIDC issuer.
+---
+
+# Custom authentication domain
+
+A custom domain gives hosted authentication a hostname you control, such as `auth.example.com`. Custom domains are configured per instance because an instance is the issuer and security boundary.
+
+## Before you begin
+
+Choose a dedicated hostname that can be represented by a CNAME. You need permission to edit its DNS records. Avoid a hostname already serving unrelated application traffic.
+
+## Add and verify the domain
+
+1. In the Console, select the intended instance.
+2. Open **Experience → Custom domain** and add the hostname without a scheme or path.
+3. Publish the exact CNAME target shown by NamoID.
+4. Publish the exact TXT challenge name and value shown by NamoID.
+5. Wait for public DNS propagation, then select **Verify**.
+
+The CNAME routes the hostname to NamoID. The TXT challenge proves control of the hostname. Both records are required; do not replace the values with examples from this documentation.
+
+After verification, NamoID manages TLS and the custom domain becomes the primary hosted-auth issuer. The managed NamoID hostname remains available as an alias.
+
+## Update your applications
+
+Issuer identity is security-sensitive. Once the custom domain is primary:
+
+- configure SDKs and relying parties with the issuer displayed by the instance;
+- update CSP and network allowlists for the custom hostname;
+- keep callback and logout URLs registered on each application; and
+- validate `iss` against the configured issuer instead of accepting arbitrary hosts.
+
+Do not dynamically trust an issuer taken from an unvalidated token or request parameter.
+
+## Troubleshooting verification
+
+If verification remains pending:
+
+- query public DNS rather than relying only on your provider's dashboard;
+- confirm the CNAME and TXT records use the exact hostnames shown;
+- check whether the DNS provider automatically appended the zone twice;
+- disable HTTP proxying while completing DNS verification if your provider masks the CNAME; and
+- allow time for cached negative responses to expire before retrying.
+
+Removing a pending domain stops its certificate setup. Treat changes to a verified Live domain as a production migration: update clients, allowlists, monitoring, and rollback plans before changing DNS.

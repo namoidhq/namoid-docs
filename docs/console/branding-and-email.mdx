@@ -1,0 +1,60 @@
+---
+title: Branding and email delivery
+description: Configure the hosted-auth identity, support contact, and managed transactional email for an instance.
+---
+
+# Branding and email delivery
+
+Branding and email settings apply to every hosted authentication page and managed message in the selected instance. Configure Test and Live independently.
+
+## Hosted Auth branding
+
+Open **Experience → Branding** to configure:
+
+- a public SVG or PNG logo URL;
+- primary and accent colors;
+- light or dark appearance; and
+- the support email shown in help and error states.
+
+If no logo is set, Hosted Auth falls back to the application name. The logo URL must remain publicly reachable by users' browsers; do not use a private object URL or a URL that requires application cookies.
+
+NamoID chooses readable action text for the selected primary color and prevents saving a color that fails its contrast check. Still review the complete preview: logos, secondary methods, errors, disabled states, and dark appearance can expose issues that a button-only contrast check cannot.
+
+Hosted pages and managed templates currently use English. Do not promise localized authentication until the language is offered by the selected instance.
+
+## Support ownership
+
+Set a support address owned by your application team before Live launch. End users should contact you for account eligibility, application access, or product-specific sign-in issues. Escalate platform faults to NamoID without forwarding credentials, codes, tokens, or unnecessary personal data.
+
+## Managed email delivery
+
+Open **Experience → Email** to review delivery status, sender, daily usage, and managed templates. The current managed sender is `no-reply@namoid.in`, with an instance-visible daily cap.
+
+Managed templates cover authentication and supported lifecycle events such as email OTP, password reset, password-change notice, and waitlist messages. NamoID controls the security wording, expiry guidance, and safe template variables. Your project name, branding, links, and support email are applied at send time.
+
+Custom template editing is not currently available. Treat the templates displayed in the Console as the source of truth rather than relying on example copy in application code.
+
+## Test before launch
+
+Use **Send test email** to send a managed message to your Console account address. Verify:
+
+- delivery to the expected inbox;
+- sender identity and spam placement;
+- logo and brand rendering in light and dark email clients;
+- support contact and destination links; and
+- mobile layout and clipped content.
+
+The test confirms basic managed delivery, not every event-specific template. In Test, also trigger the actual email OTP, password recovery, security notice, and waitlist flows you plan to use.
+
+Monitor the daily usage counter. When the cap is exhausted, email-dependent authentication can be disrupted. Phone OTP has separate delivery and spend controls.
+
+## Production checklist
+
+Before promoting the experience to Live:
+
+1. Use production-owned logo and support URLs.
+2. Confirm the support inbox is monitored.
+3. Test the Live sender path with a real identity.
+4. Confirm privacy and terms links are correct for the Live product.
+5. Review daily capacity against expected authentication volume and retry behavior.
+6. Keep credentials, OTPs, reset links, and personal data out of screenshots and support logs.

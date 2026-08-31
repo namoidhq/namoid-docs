@@ -1,0 +1,90 @@
+---
+title: Receive webhooks
+description: Subscribe to instance events, verify HMAC signatures, and process retries safely.
+---
+
+# Receive webhooks
+
+NamoID webhooks deliver instance events to your backend as signed HTTPS `POST` requests. A subscription receives one exact event type or `*` for all eligible events in that instance.
+
+Use separate Test and Live endpoints or secrets. Webhook subscriptions and delivery history are instance-scoped.
+
+## Create an endpoint
+
+In the Console, open **Webhooks**, choose an event type, and enter a public HTTPS URL. Private, loopback, and otherwise non-public destinations are rejected outside development and test environments.
+
+Copy the signing secret immediately after creation. It is shown once. Store it as a server-side secret; if it is lost or exposed, replace the subscription and secret.
+
+## Request format
+
+Each delivery contains compact JSON with this shape:
+
+```json
+{
+  "id": "delivery-uuid",
+  "event_type": "user.created",
+  "timestamp": 1788134400,
+  "payload": {}
+}
+```
+
+Relevant headers are:
+
+| Header | Meaning |
+| --- | --- |
+| `X-Idp-Signature` | Lowercase hexadecimal HMAC-SHA256 signature |
+| `X-Idp-Timestamp` | Unix timestamp used in the signature |
+| `X-Idp-Event-Type` | Delivered event type |
+| `X-Idp-Delivery-Id` | Stable delivery identifier |
+
+Header names are case-insensitive. Treat the body as bytes until verification is complete.
+
+## Verify the signature
+
+Compute HMAC-SHA256 over:
+
+```text
+<X-Idp-Timestamp>.<raw request body>
+```
+
+Use the subscription secret as the HMAC key and compare the hexadecimal digest with `X-Idp-Signature` using a constant-time comparison.
+
+```ts
+import { createHmac, timingSafeEqual } from "node:crypto";
+
+export function verifyNamoIDWebhook(
+  rawBody: Buffer,
+  timestamp: string,
+  receivedSignature: string,
+  secret: string,
+): boolean {
+  const expected = createHmac("sha256", secret)
+    .update(timestamp, "ascii")
+    .update(".")
+    .update(rawBody)
+    .digest("hex");
+
+  const received = Buffer.from(receivedSignature, "hex");
+  const calculated = Buffer.from(expected, "hex");
+  return received.length === calculated.length && timingSafeEqual(received, calculated);
+}
+```
+
+Also reject timestamps outside a small tolerance appropriate for your system, such as five minutes. This limits replay even if a signed request is captured. Keep clocks synchronized.
+
+## Process safely
+
+After verification:
+
+1. Deduplicate using `X-Idp-Delivery-Id` or the body `id`.
+2. Persist the accepted event before acknowledging it when processing is asynchronous.
+3. Return a `2xx` response quickly.
+4. Perform slow or failure-prone work in your own queue.
+
+Do not depend on delivery order. Handlers should be idempotent and should fetch current authoritative state when order matters.
+
+## Retries and testing
+
+NamoID treats any `2xx` response as delivered. Timeouts, transport failures, and non-`2xx` responses are retried with increasing delays: approximately 1 minute, 5 minutes, 30 minutes, 2 hours, and 6 hours. A receiver should therefore expect duplicate delivery attempts.
+
+Use **Send test** in the Console to queue a `webhook.test` delivery, then inspect its response code, attempt count, status, and error in delivery history. A successful synthetic event proves reachability and signature handling, but does not replace an end-to-end Test-instance event.

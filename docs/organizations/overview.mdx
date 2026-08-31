@@ -1,0 +1,65 @@
+---
+title: Customer Organizations and enterprise SSO
+description: Model business workspaces, members, verified domains, SAML connections, and organization-specific authentication policy.
+---
+
+# Customer Organizations and enterprise SSO
+
+Customer Organizations model your application's business customers inside one NamoID instance. An Organization has its own members, roles, invitations, verified domains, enterprise connections, authentication policy, lifecycle state, and audit trail.
+
+This feature is distinct from the NamoID workspace where your own team administers projects. Use it only when **Organizations** is available in the selected instance and included in your product agreement.
+
+## Create an Organization
+
+Open **Organizations**, create a customer Organization, and keep its public Organization ID. The ID can be used for Organization selection in supported OAuth flows and Management API calls; it is not a secret.
+
+Create one Organization for each independent customer workspace. Do not reuse one Organization merely because two customers share an email domain or identity provider.
+
+## Members and roles
+
+Invite members with one of these application roles:
+
+- **Admin** for Organization administration;
+- **Member** for normal business access; and
+- **Guest** for deliberately limited access defined by your application.
+
+Invitations are single-use and expire automatically. They can be revoked while pending. Role changes and membership removal apply within that Organization and do not delete the underlying instance user.
+
+Your application remains responsible for mapping these Organization roles to product permissions. A role label alone does not authorize an API request unless your resource server enforces it.
+
+## Verify a domain
+
+Under **Domains**, add the business domain and immediately save the DNS TXT challenge. The challenge value is shown only when the domain is created.
+
+Publish the exact TXT name and value, wait for public DNS propagation, and select **Verify DNS**. Verification proves control of the domain; it does not automatically enable discovery, just-in-time provisioning, or SSO enforcement.
+
+A verified domain is a security-sensitive claim. Remove or reassign it carefully when a customer changes ownership or offboards.
+
+## Add a SAML identity provider
+
+Under **SAML connections**:
+
+1. Export metadata XML from the customer's identity provider.
+2. Paste it into NamoID with a recognizable connection name.
+3. Create the connection and review its entity ID, ACS URL, SP metadata URL, certificates, and status.
+4. Configure the NamoID service provider values in the customer's IdP.
+5. Select **Validate configuration** and resolve any failure code.
+6. Complete a real Test sign-in with a non-emergency customer account.
+
+NamoID accepts supported, hardened HTTPS endpoints and signing certificates from the metadata. Never edit metadata casually to bypass validation. Plan certificate rotation before the current certificate expires.
+
+## Authentication and provisioning policy
+
+Authentication mode can be flexible, prefer enterprise SSO, or require enterprise SSO. Provisioning can remain invitation-only or use verified-domain JIT when available.
+
+Invitation-only is the safer default. Before selecting **Require enterprise SSO**, verify the default SAML connection and maintain a tested recovery procedure. Personal authentication will no longer satisfy Organization access when SSO is required.
+
+Enable upstream MFA assurance only when the customer's SAML assertions and your agreement define a trustworthy MFA signal. An IdP login by itself is not evidence that MFA occurred.
+
+Verified-domain JIT allows a qualifying user to be provisioned based on a verified domain and successful enterprise authentication. It should not be enabled merely because a domain was verified.
+
+## Suspend or archive
+
+Suspending an Organization blocks its active use while preserving configuration for possible reactivation. Archiving is a stronger lifecycle action: it revokes Organization-bound sessions and prevents new Organization access. Other Organizations and the user's personal access are unaffected.
+
+Review the Organization-specific **Audit** tab before and after changes to members, domains, connections, or policy.

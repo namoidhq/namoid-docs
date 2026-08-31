@@ -1,0 +1,86 @@
+---
+title: Production launch checklist
+description: Verify configuration, protocol security, sessions, operations, and recovery before using a Live Instance.
+---
+
+Complete this checklist before sending production users to a Live Instance.
+Validate the complete flow in Test first, then configure Live independently.
+
+## Application and URLs
+
+- Use a Live Client ID and, for confidential applications, a Live Client
+  Secret.
+- Register exact HTTPS callback URLs; remove temporary and wildcard-like URLs.
+- Register every intended post-logout destination.
+- Confirm the deployment resolves the issuer from its Client ID or discovery.
+- Keep Client Secrets in a server-side secret manager.
+
+## Authorization callback
+
+- Generate fresh `state`, `nonce`, and S256 PKCE values for every attempt.
+- Reject missing, expired, mismatched, or already consumed transactions.
+- Validate ID-token signature, issuer, audience, expiry, and nonce.
+- Confirm the UserInfo `sub` matches the ID-token subject.
+- Use `sub`, not email, as the stable user key.
+
+## Sessions and tokens
+
+- Keep refresh tokens in a confidential backend.
+- Replace the stored refresh token after every successful rotation.
+- Never place tokens in URLs, analytics, support tools, or application logs.
+- Use secure, `HttpOnly`, appropriately scoped application cookies.
+- Clear the application session and revoke the NamoID grant during logout.
+- Test expired, revoked, and replayed refresh-token behavior.
+
+## Authentication and delivery
+
+- Enable only the sign-in methods intended for launch.
+- Verify signup or waitlist access mode.
+- Configure production email delivery and test receipt.
+- Verify every external provider with its Live credentials and callback URL.
+- Test MFA enrollment, challenge, recovery, and backup codes when enabled.
+- Confirm passkey behavior on supported browsers and the relying-party domain.
+
+## Browser security
+
+- Allow only required NamoID and provider origins in Content Security Policy.
+- Do not render passwords, OTPs, provider tokens, or passkey challenges in
+  application code unless using an explicitly supported native capability.
+- Test popup blocking and redirect fallback if using popup delivery.
+- Verify authentication in private browsing and with restrictive cookie
+  settings.
+
+## Operations
+
+- Assign at least two appropriate workspace administrators.
+- Confirm audit activity is visible to authorized operators.
+- Document Client Secret and provider-secret rotation.
+- Test user-session revocation and account suspension or deletion procedures.
+- Configure webhook verification, idempotency, retries, and replay handling
+  when webhooks are enabled.
+- Record public support and incident contacts.
+- Keep Test and Live credentials in separate deployment configuration.
+
+## Final smoke test
+
+Use a controlled real identity to verify:
+
+1. sign-up or sign-in;
+2. callback validation;
+3. application-session creation;
+4. refresh rotation when applicable;
+5. UserInfo and expected claims;
+6. logout and grant revocation;
+7. a second sign-in after logout;
+8. operator visibility of the user and session.
+
+Do not launch if the application accepts an unvalidated callback, stores a
+Client Secret or refresh token in browser code, mixes Test and Live resources,
+or lacks a working logout and recovery path.
+
+## Related guides
+
+- [Validate callbacks and tokens](/authentication/callback-and-token-validation)
+- [Sessions, refresh, and logout](/authentication/sessions-and-logout)
+- [Browser security and Content Security Policy](/security/browser-and-csp)
+- [Troubleshoot sign-in](/troubleshooting/sign-in)

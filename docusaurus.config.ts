@@ -38,7 +38,7 @@ const structuredData = {
 
 const config: Config = {
   title: 'NamoID Docs',
-  tagline: 'Hosted authentication documentation',
+  tagline: 'Authentication, identity, SDK, and API documentation',
   favicon: 'favicon.ico',
   url: siteUrl,
   baseUrl: '/',
@@ -84,7 +84,7 @@ const config: Config = {
       {
         name: 'description',
         content:
-          'Developer documentation for integrating NamoID Hosted Auth with JavaScript, React, and Next.js.',
+          'Developer documentation for NamoID authentication, identity concepts, JavaScript, React, Next.js, and OpenID Connect APIs.',
       },
       {name: 'application-name', content: 'NamoID Docs'},
       {property: 'og:site_name', content: 'NamoID Docs'},

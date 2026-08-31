@@ -1,0 +1,63 @@
+---
+title: Agent Auth overview
+description: Understand NamoID's user-bound authorization model for agents, connectors, gateways, and short-lived MCP sessions.
+---
+
+# Agent Auth overview
+
+Agent Auth gives a customer-facing agent user-approved access to supported external platforms through short-lived, restricted MCP sessions. It is separate from signing a human into your application.
+
+Agent Auth is currently a private preview. The first supported slice is limited to eligible confidential Web or Machine applications in Test and may be restricted to NamoID system workspace members. Do not make it a production dependency until NamoID explicitly enables Live access for your tenant.
+
+## Security model
+
+An Agent Auth operation binds several independent authorities:
+
+1. Your confidential application authenticates its backend with a Client ID and Client Secret.
+2. A signed-in NamoID user identifies the principal on whose behalf the agent acts.
+3. The user authorizes a supported external provider connection and scopes.
+4. A published gateway revision fixes the allowed connector tool, schemas, scopes, policy, quota, and integrity hashes.
+5. NamoID mints a short-lived MCP session bound to that principal, connected account, application, gateway, and revision.
+
+The resulting session is not a general provider token and must not be reused as one. Provider tokens remain in NamoID's protected connector path.
+
+## Main objects
+
+| Object | Purpose |
+| --- | --- |
+| Application | Confidential product backend allowed to request sessions |
+| Connector Connection | Your provider OAuth application, callback, scopes, and status |
+| User connection | One principal's authorized account at that provider |
+| Gateway | Public MCP surface offered to the agent |
+| Gateway revision | Immutable published set of tool bindings and policy inputs |
+| MCP session | Five-minute, principal-bound runtime credential |
+
+Supported connector choices shown by the preview include Gmail, GitHub, Slack, and Microsoft 365. Their exact tools, scopes, certification status, and availability come from the selected instance's connector catalog.
+
+## Setup sequence
+
+1. Select a Test instance.
+2. Create an active Web or Machine application with a Client Secret.
+3. Enable Agent Auth for that application when the Console offers it.
+4. Configure a Connector Connection using a provider OAuth application.
+5. Register the exact NamoID callback URL at the provider.
+6. Add only the provider scopes needed by the intended tool.
+7. Complete a user connection through the returned authorization URL.
+8. Create a gateway draft bound to that Connector Connection and tool.
+9. Review the tool schemas, risk, scopes, policy, quota, and integrity values.
+10. Publish the gateway revision.
+11. Integrate session creation from your backend.
+
+The provider callback URL and your application's post-connect return URL are different. The former is registered with the external provider; the latter is validated by NamoID before each connect session.
+
+## Backend integration boundary
+
+Keep Agent Auth SDK and session-minting code in backend-only modules. The application Client Secret authenticates your backend; the user's NamoID access token establishes which customer is authorizing the connection or session.
+
+The browser may be redirected through the provider connection flow, but it must not receive your application Client Secret or raw stored provider credentials. A minted MCP token is shown once and should be passed directly to the intended MCP client over a protected server-side path.
+
+## Least privilege
+
+Choose the narrowest connector scopes and tool set that satisfy the stated business purpose. Separate read and write capabilities into distinct reviewable gateways when practical. Do not publish a broad gateway because a future feature might need it.
+
+Gateway revisions are immutable once published. Create and review a new revision for a material change instead of silently changing the authority behind an existing session contract.

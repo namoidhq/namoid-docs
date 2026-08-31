@@ -1,0 +1,88 @@
+---
+title: Workspaces, projects, and Instances
+description: Understand how NamoID scopes configuration, applications, users, and credentials.
+---
+
+NamoID isolates identity configuration through a fixed resource hierarchy. Know
+the active scope before creating an application, enabling a sign-in method, or
+looking for a user.
+
+```text
+Workspace
+└── Project
+    ├── Test Instance
+    │   ├── Applications
+    │   ├── Authentication configuration
+    │   ├── Users and sessions
+    │   ├── Test users and waitlist
+    │   └── Providers and webhooks
+    └── Live Instance
+        ├── Applications
+        ├── Authentication configuration
+        ├── Users and sessions
+        ├── Waitlist
+        └── Providers and webhooks
+```
+
+## Workspace
+
+A workspace is the customer account and collaboration boundary. It owns team
+membership, projects, audit activity, usage, and workspace-level settings.
+
+Workspace roles do not automatically make data from every Instance
+interchangeable. Runtime users, credentials, and provider configuration remain
+scoped to their Instance.
+
+## Project
+
+A project groups the identity infrastructure for one application or product.
+Each project contains separate Test and Live Instances so development activity
+cannot silently modify production identity data.
+
+Use separate projects when products need independent teams, lifecycle,
+configuration, or billing ownership. Do not create a new project merely for a
+deployment stage; use the Test and Live Instances instead.
+
+## Instance
+
+An Instance is the runtime trust boundary. It owns:
+
+- applications and credentials;
+- enabled authentication methods;
+- branding and email configuration;
+- end users, identities, sessions, and grants;
+- test users or waitlist entries;
+- external-provider connections;
+- webhooks and resource servers.
+
+Every Instance has an immutable public Instance ID and its own issuer. Never
+infer one Instance from a project name or reuse another Instance's issuer.
+
+## Application
+
+An application represents software that asks NamoID to authenticate a user. It
+has its own Client ID, exact callback URLs, post-logout URLs, application type,
+and policy.
+
+Public applications use a Client ID and PKCE. Confidential applications also
+receive a Client Secret for trusted server code. An application credential
+cannot be used with a sibling application or another Instance.
+
+## End user
+
+An end user belongs to exactly one Instance. The user may have credentials,
+provider identities, sessions, authentication factors, and application grants
+inside that Instance. Use the OIDC `sub` claim as the stable application key;
+email and phone values can change.
+
+## Context checklist
+
+Before changing configuration, confirm:
+
+1. the correct workspace;
+2. the correct project;
+3. Test or Live Instance;
+4. the intended application;
+5. the expected issuer and credential prefix.
+
+See [Test and Live Instances](/concepts/test-and-live) for the promotion model.
