@@ -3,9 +3,13 @@ title: Getting started
 description: Add NamoID Hosted Auth to a browser application using OpenID Connect and PKCE.
 ---
 
-This guide uses `@namoidhq/js` 3.1.0 or later with a public application in a
+This guide uses `@namoidhq/js` 3.2.0 or later with a public application in a
 Test environment. React applications can use the higher-level
 [React SDK](/sdks/react) to complete and validate the same flow.
+
+If your application has a backend or needs durable sessions, first read
+[Choose an integration](/get-started/choose-integration). A confidential
+backend-for-frontend is safer than holding durable tokens in a browser.
 
 ## 1. Create a project and application
 
@@ -126,7 +130,9 @@ contract documented here:
 
 ## Next steps
 
+- [Test and Live Instances](/concepts/test-and-live)
 - [React SDK](/sdks/react)
 - [Next.js SDK](/sdks/nextjs)
 - [Login delivery modes](/guides/login-delivery-modes)
+- [Production launch checklist](/guides/production-checklist)
 - [Authentication API](/api/auth)

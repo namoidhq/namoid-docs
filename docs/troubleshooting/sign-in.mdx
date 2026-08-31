@@ -1,0 +1,115 @@
+---
+title: Troubleshoot sign-in
+description: Diagnose callback, popup, token, Test/Live, provider, and browser failures safely.
+---
+
+Start with the symptom, then verify the active resource context. Most
+integration failures are caused by mixing applications, callback URLs, or Test
+and Live configuration.
+
+## Collect safe context
+
+Before changing configuration, record:
+
+- Test or Live;
+- public Instance ID;
+- application ID and Client ID prefix;
+- application type;
+- browser and operating system;
+- UTC timestamp;
+- sanitized error code and correlation ID;
+- whether redirect, popup, or native Test preview was used.
+
+Do not copy complete callback URLs, tokens, codes, verifiers, secrets, OTPs, or
+identity data into tickets.
+
+## Redirect URI mismatch
+
+Symptoms include an immediate authorization error or failure before Hosted
+Auth opens.
+
+Check that:
+
+1. the callback URI is registered on the same application as the Client ID;
+2. scheme, host, port, path, trailing slash, and letter case match exactly;
+3. the application is using the correct Test or Live Client ID;
+4. a proxy has not rewritten the externally visible origin;
+5. the callback URI is not being constructed from an untrusted request header.
+
+## Invalid state or missing transaction
+
+Start a fresh sign-in. This occurs when the transaction expired, was consumed,
+was opened in another browser, or its cookie/session storage was cleared.
+
+Do not bypass state validation. Check cookie domain, `SameSite`, HTTPS, reverse
+proxy headers, and whether multiple tabs overwrite one transaction key.
+
+## `invalid_grant`
+
+For an authorization code, confirm that the exact callback URI and original
+PKCE verifier were used and that the code was not already exchanged.
+
+For refresh, clear the local session and require a new sign-in. The token may
+be expired, revoked, rotated, or replayed. Do not retry the same refresh token.
+
+## `invalid_client`
+
+Confirm:
+
+- for a confidential client, the Client ID and server-held Client Secret belong
+  to the same application;
+- credentials are from the intended Instance;
+- an SPA or Native public client sends no Client Secret;
+- a confidential secret was not truncated or exposed through a public
+  environment variable;
+- the configured client-authentication method matches the token request.
+
+Rotate an exposed Client Secret rather than trying to conceal it after release.
+
+## Popup does not open or complete
+
+- Start it from a direct click or keyboard action.
+- Confirm the browser did not block the secondary window.
+- Register a same-origin popup callback.
+- Render `relayHostedAuthPopupCallback()` on that callback route.
+- Check that the opener remains available.
+- Verify CSP and cross-origin isolation settings do not block the bridge.
+- Offer a fresh full-page redirect after `popup_blocked`, `popup_closed`, or
+  `popup_timeout`.
+
+## Hosted Auth shows the wrong methods or branding
+
+The active Client ID may belong to another application or Instance. Verify the
+public application configuration, active Instance, enabled methods, provider
+connections, branding, and access mode in the Console.
+
+## Email OTP is not delivered
+
+- Confirm email OTP is enabled for the active Instance.
+- In Test, use a managed test user and its current Console OTP where possible.
+- Check whether the challenge expired before code entry.
+- Verify production email configuration before testing Live.
+- Avoid repeated requests that trigger rate limits.
+- Do not reveal whether an arbitrary email address has an account.
+
+## Social provider fails
+
+Verify that the provider is enabled in the same Instance, its Live/Test
+credentials are correct, and the callback registered with the provider exactly
+matches the value shown by NamoID. Provider approval, test-user restrictions,
+or consent-screen status may also block the flow.
+
+Never send provider Client Secrets or provider access tokens to the browser.
+
+## Sign-out returns immediately to a signed-in state
+
+You may have cleared only the application cookie while leaving the NamoID
+browser SSO session active. Perform the complete sequence in
+[Sessions, refresh, and logout](/authentication/sessions-and-logout), including
+the discovered end-session endpoint when global sign-out is intended.
+
+## Escalate safely
+
+If the issue remains, provide support with the safe context listed above and
+the smallest reproducible sequence. Rotate any credential that was accidentally
+included in a log, screenshot, repository, or support message.

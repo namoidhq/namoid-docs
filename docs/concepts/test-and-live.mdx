@@ -1,0 +1,52 @@
+---
+title: Test and Live Instances
+description: Develop safely in Test and launch intentionally with separate Live credentials and users.
+---
+
+Every project has separate Test and Live Instances. They are independent trust
+boundaries, not labels on the same user directory.
+
+| Boundary | Test | Live |
+| --- | --- | --- |
+| Purpose | Development and automated testing | Real production traffic |
+| Credentials | Test Client IDs and secrets | Live Client IDs and secrets |
+| Users | Test-only identities | Real end users |
+| Managed test users | Available | Never available |
+| Callback URLs | Local and test deployments | Production HTTPS URLs |
+| Providers and email | Test configuration | Production configuration |
+
+## What is not copied automatically
+
+Creating or updating Test configuration does not promote applications,
+credentials, users, provider secrets, email settings, or sessions to Live.
+Configure Live deliberately after validating the full Test flow.
+
+Never copy a Test Client ID into a production deployment. Credential prefixes
+help humans notice mistakes, but applications must still load the correct
+secret for their deployment.
+
+## Recommended workflow
+
+1. Create the application in Test.
+2. Register the local callback and post-logout URLs.
+3. Configure authentication and create managed test users.
+4. Verify sign-in, callback validation, session creation, refresh, revocation,
+   and logout.
+5. Exercise error states and waitlist behavior.
+6. Create or configure the matching application in Live.
+7. Register only production URLs.
+8. Configure production email and external providers.
+9. Deploy Live credentials through the application's secret manager.
+10. Run a controlled Live smoke test with a real identity.
+
+## Data and support safety
+
+Do not use real customer identity documents, provider credentials, or personal
+production data in Test. Do not copy Live users into Test to reproduce a bug.
+Use managed test users and sanitized diagnostic information.
+
+When contacting support, provide the public Instance ID, application ID,
+request time, and correlation ID when available. Do not send passwords, OTPs,
+authorization codes, tokens, Client Secrets, or raw identity documents.
+
+Continue with the [production launch checklist](/guides/production-checklist).

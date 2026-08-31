@@ -1,0 +1,88 @@
+---
+title: Validate callbacks and tokens
+description: Validate an OIDC authorization response before creating an application session.
+---
+
+Authentication is not complete when the browser reaches your callback URL.
+The application must validate the one-time authorization transaction, exchange
+the code, validate the ID token, and confirm the UserInfo subject.
+
+Prefer an official NamoID SDK or an established OpenID Connect library. Do not
+implement JWT signature validation or PKCE primitives from scratch.
+
+## Before redirecting
+
+Create a fresh transaction for every authorization attempt:
+
+- cryptographically random `state`;
+- cryptographically random `nonce`;
+- high-entropy PKCE verifier;
+- S256 PKCE challenge;
+- exact registered callback URI;
+- creation time and short expiry.
+
+Bind the transaction to the same browser session that started it. Do not place
+the PKCE verifier, nonce, or other transaction secrets in the authorization
+URL.
+
+## Validate the authorization response
+
+At the callback:
+
+1. Reject a response without a matching pending transaction.
+2. Compare `state` using the exact stored value.
+3. Validate the authorization-response issuer when `iss` is returned.
+4. Reject an expired or previously consumed transaction.
+5. Handle an OAuth `error` response before looking for a code.
+6. Exchange the code once using the original callback URI and PKCE verifier.
+7. Delete the transaction whether exchange succeeds or fails.
+
+Authorization codes are single-use. Do not retry the same code after a timeout
+or `invalid_grant`; start a new authorization attempt.
+
+## Validate the ID token
+
+Use the selected Instance's discovery document and `jwks_uri`:
+
+1. Verify the RS256 signature with a current signing key.
+2. Require `iss` to equal the exact discovered Instance issuer.
+3. Require `aud` to contain the application's Client ID.
+4. Require and validate `exp` and `iat`. Validate `nbf` when present. Apply
+   only a small clock-skew allowance.
+5. Match the token `nonce` to the authorization transaction.
+6. Reject unexpected algorithms, malformed claims, or an unknown signing key.
+
+Cache the JWKS according to response headers. When a known issuer returns an
+unknown key ID, refresh the JWKS once; do not disable signature verification.
+
+## Confirm UserInfo
+
+Call the discovered UserInfo endpoint with the access token and require its
+`sub` to equal the ID token's `sub`. Use that `sub` as the stable user key in
+your application.
+
+Do not join accounts by email alone. Email addresses can change and the same
+address must not be assumed to represent one subject across different
+Instances.
+
+## Create the application session
+
+For a confidential web application, create an opaque application session only
+after all validation succeeds. Keep NamoID tokens server-side and send the
+browser a secure, `HttpOnly`, appropriately scoped session cookie.
+
+A public SPA should keep short-lived tokens in memory. Do not put access,
+identity, or refresh tokens in `localStorage`, URLs, analytics, or logs.
+
+## Failure response
+
+On any validation failure:
+
+- do not create or preserve an authenticated application session;
+- clear the pending transaction;
+- show a generic retry action to the user;
+- record a sanitized correlation ID and failure category;
+- never log the code, verifier, token, nonce, or complete callback URL.
+
+See [OAuth errors](/reference/oauth-errors) and
+[Troubleshoot sign-in](/troubleshooting/sign-in).

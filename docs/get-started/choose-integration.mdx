@@ -1,0 +1,53 @@
+---
+title: Choose an integration
+description: Select the safest NamoID application type and SDK for your architecture.
+---
+
+Choose an integration based on where your application can protect credentials
+and tokens. The visual sign-in experience does not change the underlying OIDC
+Authorization Code with S256 PKCE flow.
+
+| Application architecture | NamoID application type | Recommended integration |
+| --- | --- | --- |
+| Next.js App Router | Confidential web application | `@namoidhq/nextjs` |
+| React single-page application | Browser / SPA | `@namoidhq/react` |
+| Framework-neutral browser app | Browser / SPA | `@namoidhq/js` |
+| Traditional backend web app | Confidential web application | Established OIDC library |
+| Mobile or desktop app | Public native application | Established AppAuth/OIDC library with PKCE |
+
+## Prefer a confidential backend when possible
+
+A backend-for-frontend can protect the Client Secret, refresh tokens, and the
+application session in trusted server code. The browser receives only an
+opaque, `HttpOnly` application cookie. This is the recommended architecture for
+applications that need durable sessions.
+
+Use the [Next.js SDK](/sdks/nextjs) when the application runs on Next.js.
+
+## Use a public SPA for browser-only applications
+
+A browser application cannot keep a secret. It must use a public Client ID and
+PKCE. Keep tokens in memory and avoid durable refresh tokens in browser
+storage. Use [React SDK](/sdks/react) for React or the
+[JavaScript SDK](/sdks/javascript) for other browser frameworks.
+
+## Choose the presentation
+
+- **Hosted redirect:** recommended default and most resilient option.
+- **Hosted popup:** useful for an in-page launch experience, with redirect
+  fallback when the browser blocks popups.
+- **Native email OTP preview:** guarded Test-only capability for specifically
+  provisioned public applications.
+
+Social login, passkeys, passwords, MFA, consent, and recovery continue inside
+Hosted Auth even when the application renders its own launch button or modal.
+See [Login delivery modes](/guides/login-delivery-modes).
+
+## Do not choose based on UI alone
+
+Do not create a public SPA application for server-rendered software simply
+because the sign-in button appears in the browser. Choose a confidential
+application whenever the callback, tokens, and session can be handled by a
+trusted backend.
+
+After choosing, follow [Getting started](/getting-started).

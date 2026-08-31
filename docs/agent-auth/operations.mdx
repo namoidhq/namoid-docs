@@ -1,0 +1,71 @@
+---
+title: Agent Auth operations and revocation
+description: Monitor connector health and MCP sessions, then contain compromised accounts, revisions, applications, or environments.
+---
+
+# Agent Auth operations and revocation
+
+<span className="badge badge--warning">Request-only preview</span>
+
+:::note Access required
+
+These controls are visible only for customers approved for the Agent Auth
+preview. Request Test access through the
+[NamoID Slack community](https://join.slack.com/t/namoidcommunity/shared_invite/zt-45cosr2nk-q9aBrzU13mlIAkkUYKnT8w).
+
+:::
+
+Agent Auth exposes separate controls for user connections, gateway revisions, MCP sessions, the Agent Auth application, and the entire instance. Use the narrowest control that contains the problem.
+
+## Monitor the runtime
+
+Use **Operations** to review invocation health and recent outcomes. Use **Sessions** to inspect active and historical MCP sessions, their bound gateway revision and connected account, expiry, last use, and revocation state.
+
+Operational events should contain bounded metadata rather than provider content. Correlate by session ID, event ID, gateway revision, connection, tool name, timestamp, and denial reason. Do not place provider responses, message bodies, tokens, or tool arguments containing personal data in general-purpose logs.
+
+Probe a user connection when provider access appears degraded. A probe can distinguish ready, degraded, or reauthorization-required state, but it should not be used as a high-frequency polling mechanism.
+
+## Revocation hierarchy
+
+| Control | Effect |
+| --- | --- |
+| Revoke MCP session | Stops that short-lived session immediately |
+| Revoke user connection | Denies new sessions using that account and attempts durable upstream provider revocation |
+| Revoke gateway revision | Existing sessions pinned to the revision fail on their next call |
+| Disable Agent Auth application | Prevents use through that application's Agent Auth configuration |
+| Pause instance Agent Auth | Emergency stop for Agent Auth activity across the instance |
+
+Revocation is intentionally not reversible for a session or published revision. Create a new user authorization or revision after the cause is understood.
+
+Upstream provider revocation can fail or remain pending. Treat the NamoID connection as denied immediately, record the upstream result, and retry or complete provider-side revocation through an approved operational path.
+
+## Incident response
+
+For suspected misuse:
+
+1. Pause the instance when scope is unknown or multiple agents may be affected.
+2. Revoke the specific session and connected account.
+3. Revoke the affected gateway revision if its tool contract or policy is unsafe.
+4. Disable or rotate the confidential application credential if it may be exposed.
+5. Review invocation metadata, approval decisions, grants, quotas, and audit history.
+6. Confirm provider-side revocation or remove the provider authorization directly.
+7. Correct policy, scopes, connector configuration, or code before resuming.
+8. Publish a new gateway revision and require fresh user authorization when authority changed.
+
+Do not resume merely because the five-minute token expired. The underlying application secret, user connection, standing grant, or unsafe revision may still allow new sessions.
+
+## Safe rollout
+
+Remain in Test until you have verified:
+
+- exact callback and return URL handling;
+- user identity binding and cross-user isolation;
+- least-privilege provider consent;
+- gateway integrity and revision pinning;
+- allowed, denied, and approval-required tool decisions;
+- quota and argument constraints;
+- session expiry and every revocation layer;
+- provider outage and reauthorization behavior; and
+- audit events without provider content leakage.
+
+Live enablement requires an explicit NamoID rollout decision. Test enablement or a visible Console page does not authorize production use.

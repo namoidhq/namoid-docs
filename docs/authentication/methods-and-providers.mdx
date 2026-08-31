@@ -1,0 +1,65 @@
+---
+title: Authentication methods and providers
+description: Configure first-party sign-in methods and external identity providers for one instance.
+---
+
+# Authentication methods and providers
+
+Authentication settings apply to the selected NamoID instance. Configure and test methods in Test before repeating the intended configuration in Live.
+
+## First-party methods
+
+Open **Authentication → Methods** to control the methods shown by Hosted Auth.
+
+| Method | Behavior | Operational requirement |
+| --- | --- | --- |
+| Email one-time code | Sends a six-digit code | Working email delivery and appropriate rate limits |
+| Magic link | Sends a single-use sign-in link | Email delivery; optional same-browser and same-IP checks |
+| Password | Email and password with reset support | Secure recovery flow and suitable lockout policy |
+| Passkey | WebAuthn discoverable credential | Compatible browser, HTTPS, and correct relying-party domain |
+| Phone OTP | Sends a code to a phone number | Provisioned SMS delivery, spend controls, and regional compliance |
+
+The Console is the source of truth for which controls are available in an instance. Do not render your own password or OTP form against undocumented endpoints; start authentication through [Hosted Auth](../guides/hosted-login).
+
+Avoid disabling the last usable method in Live. After changing a method, verify sign-up, returning-user sign-in, recovery, and logout.
+
+## Email OTP and magic links
+
+Email authentication can offer a one-time code, a magic link, or both. Magic links are single-use. Requiring the same browser or IP makes stolen links harder to use but can also reject legitimate users who switch devices, networks, or email clients.
+
+For deterministic QA without sending email, use [managed Test users](../guides/test-users) in Test.
+
+## External providers
+
+Open **Authentication → Providers**. Only providers exposed by the selected deployment and marked customer-configurable can be connected.
+
+For an OAuth provider:
+
+1. Open its configuration in NamoID.
+2. Copy the exact authorized redirect URI shown for the selected credential mode.
+3. Register that URI in the provider's developer console.
+4. Enter the provider Client ID and Client Secret in NamoID, or choose NamoID-managed credentials when offered for Test.
+5. Review the requested scopes.
+6. Enable the connection and its sign-in visibility.
+7. Open Hosted Auth and complete an end-to-end sign-in.
+
+Provider credentials, callback URLs, enablement, and visibility are instance-scoped. Use separate provider applications or credentials for Test and Live when the provider supports it.
+
+## Managed and custom credentials
+
+Some providers may offer NamoID-managed credentials in Test. That mode is for faster testing and may not be offered in Live. Custom credentials use a provider application owned by you and are the normal production boundary.
+
+Store provider secrets through the Console or supported API only. NamoID does not reveal an existing secret back to the browser. Leaving a replacement field blank retains the configured credential; entering a value replaces it.
+
+## Troubleshooting a provider
+
+When provider sign-in fails, check these in order:
+
+- the provider is configured, enabled, and visible in the same instance as the application;
+- the redirect URI at the provider exactly matches the URI shown by NamoID;
+- the Client ID and secret belong to the same provider application;
+- the provider application is in the correct test or production mode;
+- required scopes and test-user restrictions are satisfied; and
+- the user returned to the same NamoID issuer that started the flow.
+
+Do not log provider authorization codes, access tokens, ID tokens, or client secrets while diagnosing the flow.

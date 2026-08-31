@@ -1,0 +1,74 @@
+---
+title: Browser security and Content Security Policy
+description: Protect browser integrations with safe token storage, trusted origins, and a restrictive CSP.
+---
+
+Hosted Auth keeps credentials and authentication ceremonies outside your
+application's DOM, but the application still owns its callback, local session,
+dependencies, and browser security policy.
+
+## Prefer Hosted Auth
+
+Use hosted redirect or popup for passwords, OTPs, passkeys, external providers,
+MFA, consent, and recovery. Do not reproduce private authentication endpoints
+or collect credentials in custom JavaScript.
+
+The popup callback bridge relays only the authorization response to its
+same-origin opener. It must not relay tokens, profile data, passwords, OTPs, or
+provider credentials.
+
+## Token storage
+
+- Keep public-SPA access tokens in memory.
+- Keep refresh tokens and Client Secrets in a confidential backend.
+- Use an opaque, secure, `HttpOnly` cookie for a backend-for-frontend session.
+- Do not store bearer tokens in `localStorage` or expose them to analytics,
+  error-reporting payloads, browser logs, or URLs.
+- Avoid placing identity claims in client-visible cookies unless the
+  application genuinely needs them.
+
+## Content Security Policy
+
+Start from a restrictive policy and add only the exact origins required by the
+selected Instance and SDK. Depending on the integration, the application may
+need its NamoID API and issuer origins in `connect-src`.
+
+Hosted redirect and popup do not require embedding NamoID in a frame. Do not
+weaken `frame-ancestors` or add broad wildcard sources for them.
+
+The guarded native email OTP Test preview loads NamoID-managed Cloudflare
+Turnstile. Applications using that preview must allow
+`https://challenges.cloudflare.com` in `script-src` and `frame-src`, as
+described by the React SDK guide.
+
+Do not copy a development CSP containing `unsafe-eval`, wildcard `https:`, or
+unrestricted `connect-src` into production.
+
+## Popup requirements
+
+- Start the popup from a direct user action.
+- Register a same-origin popup callback.
+- Validate messages by exact origin and source window.
+- Apply a bounded timeout.
+- Treat closing or blocking as a failed attempt.
+- Start a fresh redirect transaction for fallback; do not reuse popup state.
+
+## Cross-site scripting boundary
+
+An `HttpOnly` cookie reduces token theft through ordinary browser JavaScript,
+but it does not make XSS harmless. XSS can still issue authenticated requests
+or change what the user sees. Use output encoding, dependency review, a
+restrictive CSP, CSRF protection, and minimal third-party scripts.
+
+## Logging
+
+Redact or omit:
+
+- authorization codes and complete callback URLs;
+- access, identity, and refresh tokens;
+- Client Secrets and PKCE verifiers;
+- passwords, OTPs, passkey challenges, and recovery codes;
+- provider tokens and raw identity documents.
+
+Log a request or correlation ID, sanitized route, failure category, and
+timestamp instead.

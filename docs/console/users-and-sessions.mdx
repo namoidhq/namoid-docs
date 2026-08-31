@@ -1,0 +1,60 @@
+---
+title: Users and sessions
+description: Search, export, remove, and revoke end-user access within an instance.
+---
+
+# Users and sessions
+
+Users and sessions belong to one instance. A Test identity is not a Live identity, even when both use the same email address.
+
+## User directory
+
+Open **Users** to see identities that completed authentication in the selected instance. You can search by email or user ID, inspect the identity and connected providers, and page through larger directories.
+
+The directory is not a list of your Console administrators. It contains end users of the application connected to that instance.
+
+## Export users
+
+Use **Export users** to download the instance's user directory as CSV. Treat exports as personal data:
+
+- restrict who can create and access them;
+- store them only for the intended purpose;
+- avoid sending them through informal support channels; and
+- delete local copies according to your retention policy.
+
+An export is a snapshot. Do not use an old export as an authoritative source for current access or session state.
+
+## Remove a user
+
+Removing a regular end user soft-deletes that identity in the selected instance and revokes its active NamoID-managed sessions. Audit history is retained. It does not remove an identity with the same email from another Test or Live instance. If your application maintains its own session, invalidate that application session separately.
+
+Before removing a user, distinguish between:
+
+- ending one suspicious session;
+- ending every active session for the instance;
+- preventing new registrations through access policy; and
+- deleting the user's identity.
+
+Use the narrowest operation that solves the problem. If the request is a privacy or erasure request, follow your organization's verified-request and retention process rather than treating the Console button as the whole compliance workflow.
+
+Managed Test users have a separate hard cleanup path and can be recreated. See [Test users](../guides/test-users).
+
+## Inspect active sessions
+
+Open **Sessions** to view active sessions for the selected instance. Rows include the user, protocol or application, last activity, creation time, and available device or client metadata.
+
+Use **Revoke** to end one NamoID-managed browser or OIDC session. For an OIDC session, its associated NamoID refresh tokens are revoked as well; other NamoID sessions remain active. Your application must separately invalidate any cookie or session it created from that sign-in.
+
+Use **Revoke all** only for an instance-wide incident or deliberate reset. It ends every active NamoID-managed end-user session in that instance. It does not automatically delete sessions stored by relying applications; those applications must invalidate their own sessions too.
+
+Revocation is not the same as deleting a user. It ends current authorization but leaves the identity available for a later sign-in if policy still permits it.
+
+## Incident workflow
+
+For a suspected account takeover:
+
+1. Revoke the affected NamoID session, or all NamoID sessions when scope is uncertain, and invalidate corresponding application sessions.
+2. Disable or rotate the compromised application or provider credential if applicable.
+3. Review audit events and relevant application logs using IDs rather than token contents.
+4. Require the user to recover credentials or MFA through a verified channel.
+5. Confirm that old refresh attempts fail before closing the incident.

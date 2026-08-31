@@ -1,0 +1,49 @@
+---
+title: Applications and credentials
+description: Configure OAuth applications, redirect URLs, origins, scopes, and client credentials safely.
+---
+
+# Applications and credentials
+
+An application represents one deployable OAuth/OIDC client inside a NamoID instance. It owns a Client ID, application type, registered URLs, allowed scopes, status, and—when appropriate—a Client Secret.
+
+Create separate applications when clients have different deployment boundaries or redirect URLs. This makes credential rotation, disabling, and incident response narrower.
+
+## Choose an application type
+
+- **Web** applications can keep credentials in trusted server-side infrastructure. Use a Client Secret only from that backend.
+- **SPA** applications run in the browser and are public clients. Use Authorization Code with PKCE and never ship a Client Secret.
+- **Native** applications are also public clients. Use Authorization Code with PKCE and an OS-supported redirect mechanism.
+
+Machine and device clients may be available through APIs or controlled rollout. Check [feature availability](../reference/feature-availability) before designing around them.
+
+## Registered URLs
+
+Use the application detail page to configure:
+
+- **Callback URLs**: exact destinations accepted by the authorization flow.
+- **Logout URLs**: exact destinations accepted after OIDC logout.
+- **Allowed web origins**: trusted browser origins that may use browser-facing flows.
+- **Default return URL**: the fallback destination for supported hosted flows.
+
+Treat scheme, hostname, port, path, and trailing slash as meaningful. Register development and production URLs in their respective instances rather than weakening Live configuration.
+
+## Scopes
+
+Allow only scopes the application needs. Common OIDC scopes include `openid`, `profile`, `email`, and `phone`. Request `offline_access` only when the application has a secure session design and needs refresh tokens.
+
+The requested scopes must be allowed for the application. The resulting claims still depend on the authenticated user and available attributes.
+
+## Client Secrets
+
+For a confidential client, NamoID returns the plaintext Client Secret only when the application is created or the secret is rotated. After closing the reveal dialog, it cannot be fetched again.
+
+Store it in a secrets manager and inject it only into the trusted backend. If a secret is lost, exposed, or committed, rotate it and update the deployment. Do not send it to NamoID support.
+
+Public clients must not rely on a secret: anything bundled into browser or native code is recoverable by users.
+
+## Disable or rotate safely
+
+Disabling an application prevents new successful use of that client configuration. Before a planned rotation, deploy the new secret through your normal secret-management process and verify the affected flow. Because rotation behavior can invalidate the previous credential, coordinate the deployment rather than rotating casually in Live.
+
+After URL, scope, or credential changes, test authorization, callback validation, renewal, and logout for that exact application.

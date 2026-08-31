@@ -1,0 +1,54 @@
+---
+title: MFA, sessions, and lockout policy
+description: Configure second-factor requirements, session duration, concurrency, inactivity, and password lockout.
+---
+
+# MFA, sessions, and lockout policy
+
+Open **Authentication → Security** to configure the baseline protection for the selected instance. Settings affect new authentication and session decisions; changing policy does not substitute for revoking sessions during an active incident.
+
+## Multi-factor authentication
+
+MFA mode can be:
+
+- **Off**: no second factor is required by instance policy.
+- **Optional**: users can enrol when the supported flow offers it.
+- **Required**: users who have not enrolled are required to do so during their next supported sign-in flow.
+
+The Console displays the second-factor methods available to the instance. TOTP is the normal authenticator-app method. Do not assume SMS, email, or another sign-in method is also an independent second factor unless the Console explicitly lists it.
+
+Test required MFA with a new user, an enrolled user, recovery or backup behavior, and an administrator support path before enabling it in Live. Avoid creating a policy that users cannot complete with the methods actually available.
+
+## Session lifetime
+
+Session lifetime is the absolute maximum duration configured for a session. The Console offers common values from one hour to 30 days.
+
+Use shorter lifetimes for administrative or high-risk products. Longer lifetimes reduce sign-in friction but increase the time a stolen session may remain useful. Your application session should not silently outlive the NamoID authorization state without its own deliberate security design.
+
+## Inactivity and concurrency
+
+Advanced settings can add:
+
+- an inactivity timeout, after which an idle session is no longer accepted; and
+- a maximum number of concurrent sessions per user.
+
+Leaving these values unset means no additional timeout or concurrency limit beyond the other session rules. Validate the user experience before setting very small values: mobile backgrounding, multiple browsers, and clock or network delays can appear as unexpected sign-outs.
+
+## Password lockout
+
+When password sign-in is enabled, configure the number of failed attempts that triggers lockout and the lockout duration in seconds. Lockout slows online guessing but can also be abused to deny access to a known email address.
+
+Combine lockout with rate limiting, generic authentication errors, monitoring, and secure password recovery. Do not reveal whether an account exists through different error text or timing.
+
+## Changing Live policy
+
+For a material policy change:
+
+1. Reproduce current Live settings in Test.
+2. Exercise new-user, returning-user, MFA, recovery, refresh, and logout paths.
+3. Document the support response for locked-out or unenrolled users.
+4. Apply the change during a monitored window.
+5. Watch authentication failures and support volume.
+6. Roll back the setting if users cannot complete the intended flow.
+
+During a compromise, use [session administration](../console/users-and-sessions) to revoke affected authorization. Tightening future session lifetime does not guarantee that every existing session ends immediately.

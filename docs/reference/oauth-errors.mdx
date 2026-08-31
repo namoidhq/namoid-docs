@@ -1,0 +1,63 @@
+---
+title: OAuth errors
+description: Handle NamoID authorization, token, popup, and SDK failures without unsafe retries.
+---
+
+Use the OAuth `error` or SDK error `code` as the stable programmatic value.
+Treat descriptions and user-facing messages as diagnostic text that can change.
+
+## Authorization errors
+
+| Error | Meaning | Application response |
+| --- | --- | --- |
+| `invalid_request` | A required value is missing or malformed | Correct the request; do not retry unchanged |
+| `unauthorized_client` | The application cannot use the requested flow | Check application type and configuration |
+| `invalid_scope` | A scope is unknown or unavailable | Request only configured scopes |
+| `access_denied` | The user or policy did not approve the request | Return to a signed-out state and offer a fresh start |
+| `server_error` | The authorization service could not complete the request | Show a retry action and preserve no authenticated state |
+
+Always compare the returned `state` before trusting an authorization error.
+Do not render an untrusted error description as HTML.
+
+## Token errors
+
+| Error | Common cause | Application response |
+| --- | --- | --- |
+| `invalid_client` | Wrong Client ID/secret, authentication method, or Instance | Stop and correct deployment configuration |
+| `invalid_grant` | Expired, consumed, revoked, mismatched, or replayed code/refresh token | Clear the transaction or session and start fresh |
+| `invalid_request` | Missing or malformed form parameters | Fix the request |
+| `invalid_scope` | Requested scope is not allowed | Use the original or configured scope |
+| `unsupported_grant_type` | Unsupported or incorrectly encoded grant | Use authorization code or refresh token as advertised by discovery |
+
+Never loop on `invalid_client` or `invalid_grant`. Retrying the same credential
+cannot repair it and can obscure refresh-token replay handling.
+
+## SDK and popup errors
+
+NamoID SDK failures expose a code suitable for branching. Popup integrations
+should handle at least:
+
+| Code | Response |
+| --- | --- |
+| `popup_blocked` | Offer a button that starts a fresh hosted redirect |
+| `popup_closed` | Return to signed-out UI and let the user retry |
+| `popup_timeout` | Discard the transaction and start a fresh attempt |
+
+Do not reuse state, nonce, PKCE verifier, or an authorization code after a
+popup failure.
+
+## Safe diagnostics
+
+Record:
+
+- error code;
+- HTTP status;
+- public Instance and application identifiers;
+- sanitized route;
+- timestamp;
+- provider or NamoID correlation ID.
+
+Never record passwords, OTPs, Client Secrets, authorization codes, PKCE
+verifiers, tokens, or complete callback query strings.
+
+See [Troubleshoot sign-in](/troubleshooting/sign-in) for symptom-based checks.

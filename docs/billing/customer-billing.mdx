@@ -1,0 +1,91 @@
+---
+title: Customer billing and entitlements
+description: Preview the planned customer billing, subscription, and entitlement model.
+---
+
+# Customer billing and entitlements
+
+<span className="badge badge--secondary">Not available</span>
+
+:::caution Planned capability
+
+Customer billing is not currently available to NamoID customers. Payment
+provider connections, plan publishing, hosted checkout, subscriptions, and
+entitlement APIs cannot be enabled through the Console, API, support, or the
+Slack request process. This page describes the intended model for planning and
+feedback only. Do not use it as an implementation contract.
+
+:::
+
+NamoID customer billing is planned to let an application connect its own payment-provider account, publish subscription plans, and resolve product entitlements for individual users or customer Organizations.
+
+The intended model is instance-scoped, with separate Test and Live provider modes, plans, subscriptions, and operational evidence.
+
+The workflows below are a preview of the intended design. They are not instructions for a currently available feature or API.
+
+## End-to-end model
+
+The core objects are:
+
+1. **Provider connection** — authorization to operate against your merchant account.
+2. **Feature** — a stable boolean capability or numeric product limit.
+3. **Plan** — a versioned price and entitlement map for a user or Organization audience.
+4. **Subscription** — provider-backed state for one billable subject.
+5. **Entitlements** — NamoID's authoritative access result after verified checkout and reconciliation.
+
+Authentication must continue to work during payment-provider disruption. Your application should ask the entitlement system for product access rather than calling the payment provider on every request.
+
+## Connect the provider
+
+The current Console connection flow supports Razorpay when enabled. Select **Connect Razorpay**, complete authorization on the provider, return to NamoID, and activate the connection.
+
+Test instances connect to Razorpay Test mode. Live instances perform real money movement against the connected merchant's Live account. Verify the merchant identity and mode before publishing.
+
+Reconnect a degraded or revoked connection through the supported authorization flow. Disconnecting does not erase historical subscription or audit records; plan the effect on checkout and reconciliation first.
+
+## Define features
+
+A feature has a stable key, display name, description, and kind:
+
+- **Boolean** grants or denies a capability.
+- **Limit** supplies a numeric allowance interpreted by your application.
+
+Treat feature keys as an API contract. Use durable names such as `advanced_exports` or `team_members`, not marketing copy. Archiving a feature prevents new use but should not cause old entitlement payloads to crash your application.
+
+## Create and publish plans
+
+A plan targets either a user or Organization and can contain monthly, annual, or both INR prices. Amounts are represented in paise. Assign the intended feature values before publishing.
+
+Publishing creates provider-backed, versioned price state. Existing subscriptions remain pinned to the published price version rather than silently changing when a later price is introduced. Review audience, amount, interval, trial days, public availability, and entitlements before publishing; treat Live publication as an external side effect.
+
+## Test certification before Live
+
+The Test workflow records evidence for checkout, callback signature, signed webhook processing, entitlement verification, cancellation, webhook deduplication, reconciliation, and authentication during provider outage.
+
+Do not mark certification complete based only on a successful checkout screen. Exercise each condition end to end and retain the corresponding test IDs or audit events. Live price publishing is gated by the supported certification path.
+
+## Subscription operations
+
+Subscriptions appear after hosted checkout completes. The Console shows the subject type, status, billing period, cancellation state, and entitlement version.
+
+Use **Reconcile** when provider and NamoID state may differ. Reconciliation fetches and verifies provider state before NamoID changes authoritative entitlements; it should be safe to retry with the supported idempotent operation.
+
+Configure the failed-payment policy deliberately:
+
+- restrict access immediately;
+- allow access while payment remains pending; or
+- grant a fixed number of grace days.
+
+Apply the policy consistently in the entitlement response, not through scattered application checks.
+
+## Application integration
+
+Your backend should:
+
+1. identify the authenticated user or Organization;
+2. request current entitlements through the supported server-side contract;
+3. enforce boolean capabilities and numeric limits at the resource boundary;
+4. handle unknown feature keys safely; and
+5. avoid trusting browser-provided plan or payment state.
+
+Use signed, deduplicated webhooks as change notifications, then reconcile authoritative state. Do not grant access solely because an unsigned callback or client-side checkout event says payment succeeded.

@@ -1,0 +1,77 @@
+---
+title: Sessions, refresh, and logout
+description: Manage application sessions, rotating refresh tokens, revocation, and hosted sign-out safely.
+---
+
+NamoID's browser session, OAuth grant, tokens, and your application's session
+are related but distinct. A complete implementation manages each layer
+explicitly.
+
+## Session layers
+
+| Layer | Owner | How it ends |
+| --- | --- | --- |
+| Application session | Your application | Clear or invalidate your session |
+| Access token | NamoID | Short expiry or grant/session revocation |
+| Refresh-token family | NamoID and confidential client | Revocation, expiry, or replay response |
+| Hosted browser SSO session | NamoID | Discovered end-session endpoint |
+
+Clearing only the local cookie does not revoke a refresh token. Revoking a
+refresh token does not automatically clear your application's cookie.
+
+## Refresh-token storage
+
+Keep refresh tokens in a confidential backend. Encrypt them at rest when they
+must survive process memory and never send them to browser JavaScript,
+analytics, logs, URLs, or support tools.
+
+Public SPAs should use short-lived in-memory tokens and start a fresh
+authorization flow instead of retaining a durable browser refresh token.
+
+## Rotation
+
+Every successful refresh returns a replacement refresh token and invalidates
+the token that was presented. Persist the replacement atomically before using
+it again.
+
+Serialize refresh for one application session. Concurrent refreshes from two
+requests or browser tabs can cause the second request to reuse a token that the
+first request already rotated.
+
+When a previously used refresh token is replayed, NamoID revokes the affected
+token family. Treat the resulting `invalid_grant` as a terminal session event:
+clear local state and require a new sign-in. Do not retry automatically.
+
+## Revocation
+
+Use the discovered revocation endpoint to revoke the current refresh token
+when the user signs out or disconnects the application. Revocation is
+idempotent: the client does not need to distinguish a newly revoked token from
+an already invalid token.
+
+Revocation prevents future refresh. Existing access tokens may remain usable
+until their short expiry unless the related server session is also terminated.
+
+## Complete logout
+
+A complete web logout normally performs these actions:
+
+1. Invalidate the application's own session.
+2. Revoke the stored refresh token or grant.
+3. Clear token material held by the backend.
+4. Redirect through the discovered `end_session_endpoint` when the user wants
+   to clear NamoID browser SSO.
+5. Supply a retained ID-token hint when required.
+6. Return only to an exact registered `post_logout_redirect_uri`.
+
+Use the SDK logout helper where available. Never accept an arbitrary return URL
+from a query parameter.
+
+## Administrative termination
+
+When an operator suspends a user, revokes a session, changes a security factor,
+or completes account deletion, your application should be ready for the next
+API call or refresh to fail. Clear its local session and send the user through
+a fresh authorization flow when appropriate.
+
+See the [production launch checklist](/guides/production-checklist).

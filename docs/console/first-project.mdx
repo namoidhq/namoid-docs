@@ -1,0 +1,64 @@
+---
+title: Set up your first project
+description: Create a project, configure its Test instance, and promote the same integration safely to Live.
+---
+
+# Set up your first project
+
+A NamoID project groups the identity configuration for one product. Each project starts with separate **Test** and **Live** instances. Users, applications, credentials, sessions, providers, webhooks, and issuer URLs do not cross that boundary.
+
+## 1. Start in Test
+
+Open the NamoID Console, create a project, and select its Test instance. Use Test while you configure sign-in and build your callback handler.
+
+Test and Live use different Client IDs and issuers. Copy values from the instance you are currently viewing; do not construct them from another instance's values.
+
+## 2. Choose sign-in methods
+
+Under **Authentication → Methods**, enable only the methods your application is ready to support. Provider-based methods also require a connection under **Authentication → Providers**.
+
+Keep at least one working recovery or administrative path while changing methods. A method shown in the product does not become usable until its required provider credentials and environment settings are complete.
+
+## 3. Create an application
+
+Under **Applications**, create one application for each independently deployed client. Choose the type that matches where code and credentials run:
+
+| Type | Typical client | Client secret |
+| --- | --- | --- |
+| Web | Server-rendered or backend-for-frontend application | Server-side only |
+| SPA | Browser-only application | Do not use one in browser code |
+| Native | Mobile or desktop application | Do not embed one in the app |
+
+For a confidential Web application, copy the generated Client Secret immediately. NamoID shows it once; store it in your server-side secret manager. Never place it in frontend JavaScript, a mobile binary, source control, logs, or support tickets.
+
+For an SPA or Native application, record the Client ID and use Authorization Code with PKCE. Public clients send no Client Secret.
+
+## 4. Register exact URLs
+
+Configure the application with:
+
+- callback URLs used after authorization;
+- post-logout redirect URLs;
+- allowed web origins for browser integrations; and
+- a default return URL when your flow needs one.
+
+Register exact production URLs. Avoid broad patterns and keep local development URLs out of Live. A callback sent by your application must exactly match a registered value.
+
+## 5. Integrate and test
+
+Use the instance's issuer and the application's Client ID in your SDK or OAuth configuration. Complete the authorization-code flow with PKCE and validate the callback before creating an application session.
+
+Test at least sign-in, denial, callback errors, refresh or session renewal, logout, and a disabled-user or revoked-session path. See [Callback and token validation](../authentication/callback-and-token-validation) and [Sessions and logout](../authentication/sessions-and-logout).
+
+## 6. Configure Live separately
+
+When Test is ready, repeat the configuration in Live deliberately:
+
+1. Create the Live application and store its new credentials.
+2. Register only Live callback, logout, and origin URLs.
+3. Configure Live provider credentials and delivery services.
+4. Apply branding, access, session, and security settings.
+5. Update deployment secrets with the Live issuer and Client ID.
+6. Run the [production checklist](../guides/production-checklist).
+
+Do not copy Test users, sessions, secrets, or provider credentials into Live.

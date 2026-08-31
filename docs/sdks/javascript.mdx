@@ -4,7 +4,7 @@ description: Use @namoidhq/js for OIDC discovery, PKCE sign-in, popup delivery, 
 ---
 
 `@namoidhq/js` is the framework-neutral NamoID client for browsers and modern
-JavaScript runtimes. This guide requires version 3.1.0 or later.
+JavaScript runtimes. This guide requires version 3.2.0 or later.
 
 ## Install
 
@@ -137,21 +137,15 @@ capabilities.
 
 ## Refresh, revocation, and logout
 
-Refresh tokens belong in a confidential backend or another platform-appropriate
-secure store—not browser storage.
+Do not refresh or retain durable sessions in browser JavaScript. A public SPA
+cannot protect a Client Secret or long-lived refresh token. Keep browser tokens
+in memory, use short sessions, and start a fresh authorization flow when the
+interactive session expires.
 
-```ts
-const rotated = await namoid.hostedAuth.refresh({
-  refreshToken,
-  clientSecret,
-});
-
-await namoid.hostedAuth.revoke({
-  token: rotated.refresh_token!,
-  tokenTypeHint: "refresh_token",
-  clientSecret,
-});
-```
+Applications that need durable sessions must perform refresh and revocation in
+a confidential backend. Use the [Next.js SDK](/sdks/nextjs) or call the
+discovered token and revocation endpoints from trusted server code. Never pass
+a Client Secret to `createNamoIDClient()` in a browser bundle.
 
 To clear the hosted browser session, retain the ID token and build the discovered
 RP-initiated logout URL:

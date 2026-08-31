@@ -1,0 +1,58 @@
+---
+title: Feature availability
+description: Understand which NamoID capabilities are supported, preview-only, or environment-specific.
+---
+
+The NamoID Console and the selected application's public configuration are the
+source of truth for features available to an Instance. Do not assume that a
+feature mentioned in a roadmap, package keyword, blog post, or another
+customer's environment is enabled for your application.
+
+## Availability labels
+
+| Label | Meaning |
+| --- | --- |
+| Generally available | Supported for eligible customer environments |
+| Early access | Enabled for approved customers with an evolving contract |
+| Test preview | Restricted to Test and unsuitable for production |
+| Customer-specific | Requires provider credentials, approval, or commercial enablement |
+| Planned | Not available for integration |
+
+## Currently documented capabilities
+
+These docs cover the generally supported Hosted Auth foundation:
+
+- OIDC Authorization Code with S256 PKCE;
+- public and confidential applications;
+- hosted redirect and popup delivery;
+- email OTP, password, passkey, configured external providers, and MFA as
+  advertised by the selected Instance;
+- Test and Live separation;
+- managed test users in Test;
+- JavaScript, React, and Next.js SDKs.
+
+Native email OTP is a guarded Test preview. It fails closed unless the
+environment, application, origin, human-verification policy, and rate limits
+are provisioned by NamoID.
+
+## Provider-dependent capabilities
+
+External providers require environment-specific credentials and may require
+separate provider approval. Treat DigiLocker, Aadhaar-related verification,
+WhatsApp, Truecaller, CKYC, and similar India verification capabilities as
+unavailable unless they appear as enabled in your Console and your agreement
+explicitly includes them.
+
+Contact NamoID before committing a production launch to an early-access or
+customer-specific capability.
+
+## Unavailable and request-only modules
+
+Customer Organizations, enterprise SAML, and customer billing are **not
+available**. They cannot currently be enabled for a customer and are documented
+only as planned product models. Their pages are not implementation contracts.
+
+Agent Auth is different: it is a **request-only preview** that has not been
+rolled out to every customer. Request Test access in the
+[NamoID Slack community](https://join.slack.com/t/namoidcommunity/shared_invite/zt-45cosr2nk-q9aBrzU13mlIAkkUYKnT8w).
+Access is not granted until NamoID confirms the request.
